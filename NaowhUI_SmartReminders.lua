@@ -234,7 +234,7 @@ function ns.ListPresets(forSpec)
     if not presets then return out end
     for key, p in pairs(presets) do
         local name = p.name
-        if type(name) ~= "string" or name == "" then name = "(unnamed " .. key .. ")" end
+        if type(name) ~= "string" or name == "" then name = ns.L("(unnamed ") .. key .. ")" end
         out[#out + 1] = { key = key, name = name }
     end
     table.sort(out, function(a, b) return a.key < b.key end)
@@ -261,8 +261,8 @@ function ns.NextPresetName(forSpec)
         end
     end
     local n = 1
-    while used["Preset " .. n] do n = n + 1 end
-    return "Preset " .. n
+    while used[ns.L("Preset ") .. n] do n = n + 1 end
+    return ns.L("Preset ") .. n
 end
 
 function ns.AddPreset(forSpec, name)
@@ -307,8 +307,8 @@ function ns.DeletePreset(forSpec, presetKey)
     for _, set in pairs(t.customReminders or {}) do
         for _, r in pairs(set) do
             if r.preset == presetKey and (not r.specID or r.specID == forSpec) then
-                ns.Print("Reassign or delete reminder '" .. (r.name or "Reminder")
-                    .. "' before deleting this preset.")
+                ns.Print(ns.L("Reassign or delete reminder '") .. (r.name or ns.L("Reminder"))
+                    .. ns.L("' before deleting this preset."))
                 return false
             end
         end
@@ -316,8 +316,8 @@ function ns.DeletePreset(forSpec, presetKey)
     local integrationRules = t.integrationRules and t.integrationRules[tostring(forSpec or 0)]
     for _, rule in pairs(integrationRules or {}) do
         if rule.preset == presetKey then
-            ns.Print("Reassign or delete trash rule '" .. (rule.name or "Reminder")
-                .. "' before deleting this preset.")
+            ns.Print(ns.L("Reassign or delete trash rule '") .. (rule.name or ns.L("Reminder"))
+                .. ns.L("' before deleting this preset."))
             return false
         end
     end
@@ -926,7 +926,7 @@ function Reminder.Create()
     frame.learnTag = textFrame:CreateFontString(nil, "OVERLAY")
     frame.learnTag:SetFont(AlertFont(), 12, "OUTLINE")
     frame.learnTag:SetTextColor(1, 0.65, 0.2, 1)
-    frame.learnTag:SetText("AUTHORING MODE -- CALLING EVERY ABILITY")
+    frame.learnTag:SetText(ns.L("AUTHORING MODE -- CALLING EVERY ABILITY"))
     frame.learnTag:Hide()
     frame.learnBorder = ns.Border(frame, { r = 1, g = 0.65, b = 0.2 }, 1)
     if frame.learnBorder and frame.learnBorder._frame then frame.learnBorder._frame:Hide() end
@@ -950,19 +950,33 @@ local function ApplySize()
     -- size as each other.
     local fontSize = t.textSize or DEFAULTS.textSize
     local textOn = t.showText
-    frame:SetSize(size, size)
+    local display = ns.calloutDisplay
+    local count = (display and t.showIcon) and display.count or 1
+    local width = count * size + (count - 1) * TEXT_GAP
+    frame:SetSize(width, size)
     for i = 1, #slots do
-        slots[i]:SetSize(size, size)
-        slots[i].label:SetFont(AlertFont(), fontSize, "OUTLINE")
-        slots[i].label:SetShown(textOn)
-        slots[i].icon:SetShown(t.showIcon)
+        local slot = slots[i]
+        local position = display and display.order[slot.spellID]
+        slot:SetSize(size, size)
+        slot:ClearAllPoints()
+        if position and t.showIcon then
+            slot:SetPoint("TOPLEFT", frame, "TOPLEFT", (position - 1) * (size + TEXT_GAP), 0)
+        else
+            slot:SetPoint("TOP", frame, "TOP", 0, 0)
+        end
+        slot.label:SetFont(AlertFont(), fontSize, "OUTLINE")
+        -- One localized combined label for the whole set; otherwise labels overlap.
+        slot.label:SetText((display and slot.spellID == display.picked)
+            and display.text or slot.calloutText or "")
+        slot.label:SetShown(textOn and (not display or slot.spellID == display.picked))
+        slot.icon:SetShown(t.showIcon)
     end
     if frame.fallback then
         frame.fallback:SetFont(AlertFont(), fontSize, "OUTLINE")
-        frame.fallback:SetText(t.voiceNone or "")
+        frame.fallback:SetText(ns.L(t.voiceNone or ""))
         frame.fallback:SetShown(textOn and t.fallbackOn ~= false)
     end
-    if bar then bar:SetWidth(math.max(size * 2, 120)) end
+    if bar then bar:SetWidth(math.max(size * 2, width, 120)) end
     ApplyTextLayout()
 end
 
@@ -995,6 +1009,7 @@ local function RebuildSlots(fp, keepIfEmpty, presetOverride)
         if not found then return false end
     end
     activeSlots = 0
+    ns.calloutDisplay = nil
     if not frame then return end
 
     -- Which preset these slots came from. Call Together is stored per preset, and the
@@ -1008,6 +1023,7 @@ local function RebuildSlots(fp, keepIfEmpty, presetOverride)
     -- player never chose. Robin wants every preset built deliberately in Setup, per spec.
     if not list then
         for i = 1, #slots do slots[i]:SetAlpha(0) end
+        ApplySize()
         return
     end
 
@@ -1029,7 +1045,8 @@ local function RebuildSlots(fp, keepIfEmpty, presetOverride)
             slot.iconID = iconID or 134400
             slot.icon:SetTexture(slot.iconID)
             -- Same string the spoken callout uses, so editing it once changes both.
-            slot.label:SetText(CalloutFor(spellID, info and info.name))
+            slot.calloutText = CalloutFor(spellID, info and info.name)
+            slot.label:SetText(slot.calloutText)
         end
     end
 
@@ -1064,6 +1081,11 @@ end
 local EnsureChargeState, ChargesAvailable
 
 local function ApplyPriorityAlpha()
+    -- A new single pick must not inherit the previous multi-icon layout.
+    if ns.calloutDisplay then
+        ns.calloutDisplay = nil
+        ApplySize()
+    end
     local ev = C_CurveUtil.EvaluateColorValueFromBoolean
     local eligible = 1
 
@@ -1121,6 +1143,47 @@ local function ApplyPriorityAlpha()
             frame.fallback:SetAlpha(eligible)
         end
     end
+end
+
+-- Show every ready member of the same Call Together group side by side. Membership
+-- comes from the Lua pick, but each icon's alpha still comes from the engine's own
+-- readiness, as in ApplyPriorityAlpha, so a member the model wrongly thinks is up stays
+-- dark instead of being forced on.
+function ns.ShowCalloutSet(picked, partners)
+    if not (picked and partners and #partners > 0) then return end
+    local members = { [picked] = true }
+    for i = 1, #partners do members[partners[i]] = true end
+    local display = { picked = picked, order = {}, pending = {}, count = 0 }
+    for i = 1, activeSlots do
+        local sid = slots[i].spellID
+        if members[sid] and not display.order[sid] then
+            display.count = display.count + 1
+            display.order[sid] = display.count
+            display.pending[sid] = true
+        end
+    end
+    if display.count < 2 or not display.order[picked] then return end
+    display.text = ns.SetCalloutLine(picked, partners)
+    ns.calloutDisplay = display
+    ApplySize()
+    local ev = C_CurveUtil.EvaluateColorValueFromBoolean
+    for i = 1, #slots do
+        local slot = slots[i]
+        local alpha = 0
+        if i <= activeSlots and display.order[slot.spellID] then
+            local charges = ChargesAvailable(slot.spellID)
+            local dur = (not charges) and C_Spell.GetSpellCooldownDuration(slot.spellID, true) or nil
+            if charges then
+                alpha = charges > 0 and 1 or 0
+            elseif dur and dur.IsZero then
+                alpha = ev(dur:IsZero(), 1, 0)
+            else
+                alpha = 1
+            end
+        end
+        slot:SetAlpha(alpha)
+    end
+    if frame.fallback then frame.fallback:SetAlpha(0) end
 end
 
 -- Both per-boss sets share one shape: profile.<field>[encounterID][fingerprint] = true.
@@ -1332,7 +1395,7 @@ local function BossThreatSummary()
                 .. ("%s=%s"):format(unit, tostring(UnitTankedVerdict(unit)))
         end
     end
-    return out or "no boss units"
+    return out or ns.L("no boss units")
 end
 
 -- Does any live boss consider ME its problem? For two-tank raids: the buster lands on
@@ -1642,12 +1705,12 @@ local function RegisterEventSounds()
     ns.ClearEventSounds()
     if not (TRDB().enabled and TRDB().soundOn) then return end
     if ns.BossSource() ~= "timeline" then
-        soundError = "Per-ability sounds ride the Blizzard timeline. Boss Addon is set to "
-            .. "a boss mod, so they are off."
+        soundError = ns.L("Per-ability sounds ride the Blizzard timeline. Boss Addon is set to ")
+            .. ns.L("a boss mod, so they are off.")
         return
     end
     if not canSound then
-        soundError = "This client does not support per-ability sounds."
+        soundError = ns.L("This client does not support per-ability sounds.")
         return
     end
 
@@ -1666,13 +1729,13 @@ local function RegisterEventSounds()
 
     local file = ResolveSoundFile()
     if not file then
-        soundError = soundError or "Pick a sound file. Built-in game sounds cannot be used here."
+        soundError = soundError or ns.L("Pick a sound file. Built-in game sounds cannot be used here.")
         return
     end
 
     local ids = C_EncounterEvents.GetEventList()
     if not ids then
-        soundError = "No encounter ability data available yet."
+        soundError = ns.L("No encounter ability data available yet.")
         return
     end
 
@@ -2658,7 +2721,7 @@ end
 -- Voice list for the options dropdown: values keyed by voiceID, plus a Game Default entry
 -- keyed "" since a dropdown cannot carry nil as a value.
 function ns.TTSVoiceChoices()
-    local values, order = { [""] = "Game Default" }, { "" }
+    local values, order = { [""] = ns.L("Game Default") }, { "" }
     if C_VoiceChat and C_VoiceChat.GetTtsVoices then
         local voices = C_VoiceChat.GetTtsVoices()
         for i = 1, #(voices or {}) do
@@ -2734,9 +2797,9 @@ do
         -- deprecation shim behind the loadDeprecationFallbacks CVar, so on a client with it
         -- off the call is nil and this would quietly do nothing forever.
         if C_ChatInfo and C_ChatInfo.SendChatMessage then
-            pcall(C_ChatInfo.SendChatMessage, "EXTERNAL!", channel)
+            pcall(C_ChatInfo.SendChatMessage, ns.L("EXTERNAL!"), channel)
         elseif SendChatMessage then
-            pcall(SendChatMessage, "EXTERNAL!", channel)
+            pcall(SendChatMessage, ns.L("EXTERNAL!"), channel)
         end
     end
 end
@@ -2830,7 +2893,7 @@ local function LogCallout(sid, partners)
         chargeModel = ChargeModelSnapshot(),
         castTracked = castToBase[sid] ~= nil,
         lastOwnCastAgo = ownCastAt[ns.CooldownKey(sid)] and (GetTime() - ownCastAt[ns.CooldownKey(sid)]) or nil,
-        running = running == nil and "unreadable" or tostring(running),
+        running = running == nil and ns.L("unreadable") or tostring(running),
         readyAtDelta = readyAt[ns.CooldownKey(sid)] and (readyAt[ns.CooldownKey(sid)] - GetTime()) or nil,
         secrecy = SecrecyLevelName(sid),
         -- Only present when Only While I Have the Boss was actually the gate that let
@@ -2903,7 +2966,7 @@ function ns.SetCalloutLine(picked, partners)
         if part and not ns.IsAudioOff(sid) then
             local si = C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
             local one = CalloutFor(sid, si and si.name)
-            said = said and (said .. " and " .. one) or one
+            said = said and (said .. ns.L(" and ") .. one) or one
         end
     end
     return said or own
@@ -2916,7 +2979,8 @@ end
 -- as "the icon came up but not the sound alert", reported live on Rav'i.
 local function SpeakCallout(triggerSid)
     local t = TRDB()
-    if not t.voiceOn or activeSlots == 0 then return end
+    -- Resolve the visual set even when spoken callouts are disabled.
+    if activeSlots == 0 then return end
 
     -- NOTE: the tank filter cannot reach audio -- the engine applies it to artwork only. So
     -- with that filter on, the voice speaks for every timeline ability while the icon shows
@@ -2963,14 +3027,16 @@ local function SpeakCallout(triggerSid)
     if not ok then
         local why = picked
         if issecretvalue and issecretvalue(why) then
-            why = "the error itself carries a secret"
+            why = ns.L("the error itself carries a secret")
         end
-        ns.Print("|cffff6060pick failed|r, using the fallback: " .. tostring(why))
+        ns.Print(ns.L("|cffff6060pick failed|r, using the fallback: ") .. tostring(why))
         picked = nil
     end
 
     if picked then
         local partners = ns.TogetherPartners(picked, ns.slotsPreset, now)
+        ns.ShowCalloutSet(picked, partners)
+        if not t.voiceOn then return end
 
         -- Outside the audio gate below: a muted entry still wins the pick and still shows,
         -- so it should still light up its Cooldown Manager button.
@@ -2997,11 +3063,13 @@ local function SpeakCallout(triggerSid)
         return
     end
 
+    if not t.voiceOn then return end
+
     -- Per ability, falling back to the spec-wide toggle. triggerSid is nil on a test fire,
     -- which finds no binding and so answers with that toggle -- the test still demonstrates
     -- what the spec default does.
     if ns.ExternalCallFor(currentEncounter, triggerSid) then
-        if not ns.IsAudioOff(0) then Announce(0, t.voiceNone) end
+        if not ns.IsAudioOff(0) then Announce(0, ns.L(t.voiceNone)) end
         -- Outside the audio gate: silencing the callout should not silence the chat call.
         ns.AnnounceExternalToChat()
     elseif ok then
@@ -3023,7 +3091,7 @@ local function BuildString()
     local toc = (C_AddOns and C_AddOns.GetAddOnMetadata
         and C_AddOns.GetAddOnMetadata(ns.MODULE_KEY, "Version")) or "unknown"
     -- The TOC half only moves on release; ns.CODE_BUILD moves whenever the Lua does.
-    return ns.CODE_BUILD and (toc .. " code " .. ns.CODE_BUILD) or toc
+    return ns.CODE_BUILD and (toc .. ns.L(" code ") .. ns.CODE_BUILD) or toc
 end
 
 -- Never tostring an error straight into a message. When a secret value is what raised, the
@@ -3044,10 +3112,10 @@ end
 -- EventTrace pick their formatting the same way.
 local function ErrText(err)
     if issecretvalue and issecretvalue(err) then
-        return "unreadable (the error itself carries a secret)"
+        return ns.L("unreadable (the error itself carries a secret)")
     end
     local ok, text = pcall(function() return tostring(err) end)
-    return ok and text or "unreadable"
+    return ok and text or ns.L("unreadable")
 end
 
 -- Whether the options window is open, which every hide path has to respect so a preview
@@ -3149,6 +3217,11 @@ local function HideReminder()
     end
     if textFrame then textFrame:Hide() end
     if bar then bar:Hide() end
+    if ns.calloutDisplay then
+        ns.calloutDisplay = nil
+        for i = 1, #slots do slots[i]:SetAlpha(0) end
+        ApplySize()
+    end
     if ns.slotsStale then
         ns.slotsStale = nil
         RebuildSlots()
@@ -3161,6 +3234,17 @@ function ns.HideIfCalloutPressed(castSpellID)
     if TRDB().hideOnCast ~= true or not shownForEvent then return end
     local sid = castSpellID and castToBase[castSpellID]
     if not sid then return end
+    -- Keep the other half visible until every called ability has been pressed.
+    if ns.calloutDisplay then
+        if not ns.calloutDisplay.pending[sid] then return end
+        ns.calloutDisplay.pending[sid] = nil
+        if not next(ns.calloutDisplay.pending) then HideReminder() return end
+        -- Dim the icon only: the shared caption is parented to one of these slots.
+        for i = 1, activeSlots do
+            if slots[i].spellID == sid then slots[i].icon:SetAlpha(0.35) end
+        end
+        return
+    end
     for i = 1, activeSlots do
         local slot = slots[i]
         if slot.spellID == sid then
@@ -3293,9 +3377,9 @@ function ns.ForceShowTest()
     -- cannot prove itself here at all, since it only fires on a real boss event.
     local t2 = TRDB()
     if not (t2.showIcon or t2.showText or t2.voiceOn) then
-        ns.Print("|cffff6060icon, text and voice are all switched off|r -- there is nothing "
-            .. "for this test to show. Play a Sound is engine-driven and only fires on a "
-            .. "real boss.")
+        ns.Print(ns.L("|cffff6060icon, text and voice are all switched off|r -- there is nothing ")
+            .. ns.L("for this test to show. Play a Sound is engine-driven and only fires on a ")
+            .. ns.L("real boss."))
     end
     if hideTimer then hideTimer:Cancel() end
     hideTimer = C_Timer.NewTimer(TRDB().lingerSec or DEFAULTS.lingerSec, HideReminder)
@@ -3517,22 +3601,22 @@ function ns.SpeakReminderTTS(r, overrideText, preview)
         if preview then ns.Print(message) end
     end
     if not (C_VoiceChat and C_VoiceChat.SpeakText and C_VoiceChat.GetTtsVoices) then
-        return Unavailable("TTS is unavailable in this client.")
+        return Unavailable(ns.L("TTS is unavailable in this client."))
     end
     local voices = C_VoiceChat.GetTtsVoices()
     if not voices or #voices == 0 then
-        return Unavailable("No TTS voices are available. Check WoW's Text to Speech settings.")
+        return Unavailable(ns.L("No TTS voices are available. Check WoW's Text to Speech settings."))
     end
     local voiceID = ns.TTSVoiceID()
-    if not voiceID then return Unavailable("No TTS voice is selected.") end
+    if not voiceID then return Unavailable(ns.L("No TTS voice is selected.")) end
     local rate = (C_TTSSettings and C_TTSSettings.GetSpeechRate and C_TTSSettings.GetSpeechRate()) or 0
     local volume = TRDB().voiceVol or 100
     if volume <= 0 then
-        return Unavailable("Voice Volume is zero. Raise it under Smart Reminders > Setup > Sounds and Voice.")
+        return Unavailable(ns.L("Voice Volume is zero. Raise it under Smart Reminders > Setup > Sounds and Voice."))
     end
     -- Blizzard's documented order is voiceID, text, rate, volume, overlap.
     local ok = pcall(C_VoiceChat.SpeakText, voiceID, text, rate, volume, false)
-    if not ok then return Unavailable("WoW could not start TTS playback. Check its Text to Speech settings.") end
+    if not ok then return Unavailable(ns.L("WoW could not start TTS playback. Check its Text to Speech settings.")) end
 end
 
 -- Shared by every display type that can be bound to a defensive rather than free text
@@ -3572,6 +3656,7 @@ end
 local function ShowOnAlert(opts)
     if not frame then Reminder.Create() end
     if not frame then return false end
+    local spoken, resolved = opts.text, true
 
     if opts.preset or opts.fp then
         -- keepIfEmpty: nothing on the list being available leaves whatever is on screen
@@ -3580,7 +3665,17 @@ local function ShowOnAlert(opts)
         ApplyPriorityAlpha()
         ClearTankGate()
         if frame.reminder then frame.reminder:Hide() end
+        if opts.resolveFrom then
+            local picked = ns.ResolveReminderSpell(opts.resolveFrom, opts.preset)
+            local partners = picked and ns.TogetherPartners(picked, ns.slotsPreset)
+            ns.ShowCalloutSet(picked, partners)
+            -- Resolve once for the icon set and its single shared caption.
+            local named = picked and ns.SetCalloutLine(picked, partners)
+            if named and named ~= "" then spoken = named else resolved = false end
+        end
     elseif frame.reminder and type(opts.text) == "string" and opts.text ~= "" then
+        ns.calloutDisplay = nil
+        ApplySize()
         -- The slots keep whatever the spec's own preset last put in them, so showing the
         -- frame for a line alone still displayed a defensive nobody asked for.
         for i = 1, #slots do slots[i]:SetAlpha(0) end
@@ -3616,22 +3711,6 @@ local function ShowOnAlert(opts)
     if textFrame then textFrame:Show() end
 
     if opts.audio then
-        local spoken, resolved = opts.text, true
-        if opts.resolveFrom and (opts.preset or opts.fp) then
-            local picked = ns.ResolveReminderSpell(opts.resolveFrom, opts.preset)
-            -- The same set line the boss callout speaks, for the same reason: a pick that
-            -- belongs to a Call Together group is named with every other ready member
-            -- rather than on its own. This said the winner alone, so a set built as
-            -- "AMS + Death's Advance" called out half of itself.
-            --
-            -- Reads the slots RebuildSlots just filled for this preset above, which is why
-            -- it belongs here rather than in ResolveReminderSpell. Through CalloutFor, not
-            -- the spell's own name: someone who renames Vampiric Blood to "Vamp" wants to
-            -- hear "Vamp", and the slot label beside it has always said so.
-            local named = picked and ns.SetCalloutLine(picked,
-                ns.TogetherPartners(picked, ns.slotsPreset))
-            if named and named ~= "" then spoken = named else resolved = false end
-        end
         -- Nothing on the list is up. RebuildSlots let the callout through because every
         -- entry is KNOWN -- readiness is the alpha's job -- so the icons had already gone
         -- dark while the sound file and the pre-pull line still called for a defensive the
@@ -3916,7 +3995,7 @@ function ns.OnBossCast(event, unit, spellID)
     -- casts and is not a fault. Logging only the success cost a pull to find that out.
     if event == "UNIT_SPELLCAST_START" and isBoss then
         local why
-        if not TRDB().castTargetBoss then why = "target display off"
+        if not TRDB().castTargetBoss then why = ns.L("target display off")
         -- Asked even with nothing on screen, so a trace of one dungeon answers "which
         -- abilities here carry a target name at all" instead of only reporting the ones
         -- that happened to coincide with a callout. That question has cost several pulls
@@ -3925,9 +4004,9 @@ function ns.OnBossCast(event, unit, spellID)
             -- Only worth asking when somebody is reading the answer: with trace off this
             -- string is built and thrown away, and the question is an API call per cast.
             why = TRDB().trace and ns.CastNamesATarget(unit)
-                and "no alert, but this cast names somebody" or "no alert to name"
-        elseif ns.ShowCastTargetOn(unit, true) then why = "target named"
-        else why = "cast names nobody" end
+                and ns.L("no alert, but this cast names somebody") or ns.L("no alert to name")
+        elseif ns.ShowCastTargetOn(unit, true) then why = ns.L("target named")
+        else why = ns.L("cast names nobody") end
         if TRDB().trace then AppendLog({ kind = "bosscast", unit = unit, text = why }) end
     end
 
@@ -3944,7 +4023,7 @@ function ns.OnBossCast(event, unit, spellID)
         -- SavedVariables. Logged as "secret id" when it is one -- which is itself the
         -- answer worth having.
         AppendLog({ kind = "bosscast", sid = plain, unit = unit,
-            text = entry and "matched" or "not watched" })
+            text = entry and ns.L("matched") or ns.L("not watched") })
     end
     if not entry then return end
 
@@ -4345,7 +4424,7 @@ function ns.MigrateBindingScopes()
     t.bindingsBySpec = true
     t.scopeMigrated = nil
     if moved > 0 then
-        ns.Print(("|cffffa300%d saved abilities|r now belong to the spec that made them. Other specs start clean -- your originals are kept if this guessed wrong.")
+        ns.Print((ns.L("|cffffa300%d saved abilities|r now belong to the spec that made them. Other specs start clean -- your originals are kept if this guessed wrong."))
             :format(moved))
     end
 end
@@ -4798,20 +4877,20 @@ end
 -- ceiling.
 function ns.TestFireAbility(enc, sid, reminder)
     if not TRDB().enabled then
-        ns.Print("switch the reminder on first.")
+        ns.Print(ns.L("switch the reminder on first."))
         return
     end
     if reminder and (not ns.IsReminderEnabled(reminder) or (reminder.specID and reminder.specID ~= ns.CurrentSpec())) then
-        ns.Print("this message reminder is disabled or belongs to another spec.")
+        ns.Print(ns.L("this message reminder is disabled or belongs to another spec."))
         return
     end
     if not reminder and not ns.AbilityEnabledForBinding(enc, sid) then
-        ns.Print("this ability is toggled off for this boss, so it will not call out.")
+        ns.Print(ns.L("this ability is toggled off for this boss, so it will not call out."))
         return
     end
     local binding = ns.BindingForBossModKey(enc, sid)
     if not reminder and binding and binding.mode == "custom" then
-        ns.Print("this ability is set to Ability Reminder; the generic callout stays quiet for it.")
+        ns.Print(ns.L("this ability is set to Ability Reminder; the generic callout stays quiet for it."))
         return
     end
     RefreshSpec()
@@ -4826,12 +4905,12 @@ function ns.TestFireAbility(enc, sid, reminder)
     currentEncounter = priorEnc
     if not ok then error(err, 0) end
     if shownForEvent ~= sid then
-        ns.Print("nothing on your priority list is talented for this spec, so there is nothing to call.")
+        ns.Print(ns.L("nothing on your priority list is talented for this spec, so there is nothing to call."))
     elseif not TRDB().voiceOn then
-        ns.Print("voice is off, so the test shows the icon only.")
+        ns.Print(ns.L("voice is off, so the test shows the icon only."))
     end
     if not reminder and ns.HasMessageDefensive(enc, sid) then
-        ns.Print("this tests the bar callout; the ability's messages fire the reminder under BOSS REMINDERS, which has its own Test.")
+        ns.Print(ns.L("this tests the bar callout; the ability's messages fire the reminder under BOSS REMINDERS, which has its own Test."))
     end
 end
 
@@ -4956,7 +5035,7 @@ function ns.ScheduleBWFire(channel, sid, duration, barIdentity, lead, fireFn, is
             sidFires[otherKey] = nil
         elseif TRDB().trace then
             AppendLog({ kind = "drop", sid = sid,
-                text = ("kept a fire %.1fs out, this bar is %.1fs out"):format(
+                text = (ns.L("kept a fire %.1fs out, this bar is %.1fs out")):format(
                     f.fireAt - GetTime(), delay) })
         end
     end
@@ -5068,7 +5147,7 @@ function ns.HandleBigWigsAbility(sid, duration, barIdentity, isRetry, isApprox)
         end
         if TRDB().trace then
             AppendLog({ kind = "drop", sid = sid,
-                text = not InEncounter() and "not in encounter" or "engine gated" })
+                text = not InEncounter() and ns.L("not in encounter") or ns.L("engine gated") })
         end
         return
     end
@@ -5188,7 +5267,7 @@ local function CancelPendingBWFire(barIdentity)
                 if f.approx and not f.late then
                     if TRDB().trace then
                         AppendLog({ kind = "drop", sid = sid,
-                            text = ("kept estimate fire, bar '%s' stopped %.1fs before it"):format(
+                            text = (ns.L("kept estimate fire, bar '%s' stopped %.1fs before it")):format(
                                 tostring(barIdentity), f.fireAt - GetTime()) })
                     end
                 else
@@ -5198,7 +5277,7 @@ local function CancelPendingBWFire(barIdentity)
                     -- exactly the shape that has cost multiple investigations. Logged for
                     -- the trace, with how far out it still was.
                     AppendLog({ kind = "cancel", sid = sid,
-                        text = ("%s (%.1fs before it would have fired)"):format(
+                        text = (ns.L("%s (%.1fs before it would have fired)")):format(
                             tostring(barIdentity), f.fireAt - GetTime()) })
                     -- Clear every identity this one entry answers to, not just the name the
                     -- stop happened to arrive under, or the other mod's alias would be left
@@ -5686,9 +5765,9 @@ local function WarnIfMuted()
     if warnedCombatWarnings or not TRDB().enabled then return end
     if not CombatWarningsOff() then return end
     warnedCombatWarnings = true
-    ns.Print("|cffff6060Boss Warnings are turned off|r, so the game sends no timeline data and "
-        .. "the tank reminder cannot fire. Turn it back on in Options, Advanced, Combat Warnings, "
-        .. "Enable Boss Warnings. Hiding the timeline itself is fine and changes nothing here.")
+    ns.Print(ns.L("|cffff6060Boss Warnings are turned off|r, so the game sends no timeline data and ")
+        .. ns.L("the tank reminder cannot fire. Turn it back on in Options, Advanced, Combat Warnings, ")
+        .. ns.L("Enable Boss Warnings. Hiding the timeline itself is fine and changes nothing here."))
 end
 
 -- The BigWigs/DBM-driven callout (ns.HandleBigWigsAbility) has nothing to listen to
@@ -5703,9 +5782,9 @@ function ns.WarnIfNoBossMod()
     if source == "timeline" then return end
     if (source == "bigwigs" and _G.BigWigsLoader) or (source == "dbm" and _G.DBM) then return end
     warnedNoBossMod = true
-    ns.Print(("|cffff6060Boss Addon is set to %s, but it is not loaded|r -- callouts have "
-        .. "nothing to listen to. Install it, or switch Boss Addon on the Smart "
-        .. "Reminders Setup tab."):format(
+    ns.Print((ns.L("|cffff6060Boss Addon is set to %s, but it is not loaded|r -- callouts have ")
+        .. ns.L("nothing to listen to. Install it, or switch Boss Addon on the Smart ")
+        .. ns.L("Reminders Setup tab.")):format(
         source == "bigwigs" and "BigWigs" or "DBM"))
 end
 
@@ -5784,6 +5863,9 @@ local function UpdatePreview()
     -- No gate on the master switch here: everything ships OFF, so the addon is still
     -- disabled at exactly the moment someone is placing and sizing the alert.
 
+    -- Do not replace an active multi-icon callout with the placement preview.
+    if ns.calloutDisplay then return end
+
     Reminder.Create()
     RebuildSlots()
 
@@ -5815,7 +5897,8 @@ local function UpdatePreview()
         slot.spellID = nil
         slot.iconID = 134400
         slot.icon:SetTexture(134400)
-        slot.label:SetText("Defensive")
+        slot.calloutText = ns.L("Defensive")
+        slot.label:SetText(slot.calloutText)
         ApplySize()
     end
     slot:SetAlpha(1)
@@ -5830,7 +5913,8 @@ local function UpdatePreview()
         if activeSlots > 0 then
             local sid = slot.spellID
             local si = sid and C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
-            slot.label:SetText(CalloutFor(sid, si and si.name))
+            slot.calloutText = CalloutFor(sid, si and si.name)
+            slot.label:SetText(slot.calloutText)
         end
         slot.label:SetShown((TRDB().showText or configPreview) and true or false)
     end
@@ -5892,7 +5976,7 @@ end
 local function DiagProblems()
     local t, out = TRDB(), {}
     if t.enabled ~= true then
-        out[#out + 1] = "the reminder is switched OFF -- turn it on in Smart Reminders"
+        out[#out + 1] = ns.L("the reminder is switched OFF -- turn it on in Smart Reminders")
     end
     -- Read from the active preset itself, not activeSlots: those hold whatever was built
     -- last, a boss preset or a text-only alert, and blamed a preset that was fine. Named,
@@ -5901,8 +5985,8 @@ local function DiagProblems()
     local presets = key and PresetsTable(specID, false)
     local p = presets and presets[key]
     if type(p) ~= "table" then
-        out[#out + 1] = "this spec has no cooldown preset, so a callout without one of its "
-            .. "own stays silent -- make one under Cooldown Presets"
+        out[#out + 1] = ns.L("this spec has no cooldown preset, so a callout without one of its ")
+            .. ns.L("own stays silent -- make one under Cooldown Presets")
     else
         local castable = false
         for _, sid in ipairs(type(p.list) == "table" and p.list or {}) do
@@ -5913,24 +5997,24 @@ local function DiagProblems()
         end
         if not castable then
             local name = (type(p.name) == "string" and p.name ~= "" and p.name)
-                or "the selected preset"
-            out[#out + 1] = ("nothing on your active preset (%s) can be cast on this "
-                .. "character, so a callout falling back to it stays silent -- pick another "
-                .. "one under Cooldown Presets. Callouts bound to a preset of their own "
-                .. "still fire."):format(name)
+                or ns.L("the selected preset")
+            out[#out + 1] = (ns.L("nothing on your active preset (%s) can be cast on this ")
+                .. ns.L("character, so a callout falling back to it stays silent -- pick another ")
+                .. ns.L("one under Cooldown Presets. Callouts bound to a preset of their own ")
+                .. ns.L("still fire.")):format(name)
         end
     end
     -- No instruction any more: the client refuses the registration everywhere in this build,
     -- so there is nothing a tester can do about it and the old "step outside once" line sent
     -- several of them on a walk that could not have worked.
     if watcher and not watcher:IsEventRegistered("COMBAT_LOG_EVENT_UNFILTERED") then
-        out[#out + 1] = "the client refuses the combat log to addons in this build, so Skip "
-            .. "When Already Covered has no aura data -- it runs on your own casts instead, "
-            .. "for " .. tostring(TRDB().coveredCastWindow or OWN_CAST_COVER_DEFAULT)
-            .. "s after you press one"
+        out[#out + 1] = ns.L("the client refuses the combat log to addons in this build, so Skip ")
+            .. ns.L("When Already Covered has no aura data -- it runs on your own casts instead, ")
+            .. ns.L("for ") .. tostring(TRDB().coveredCastWindow or OWN_CAST_COVER_DEFAULT)
+            .. ns.L("s after you press one")
     end
     if not TimelineAvailable() then
-        out[#out + 1] = "the boss timeline feature is unavailable here"
+        out[#out + 1] = ns.L("the boss timeline feature is unavailable here")
     end
     return out
 end
@@ -5956,13 +6040,13 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         local t = TRDB()
         t.pretendTank = not t.pretendTank and true or nil
         if t.pretendTank then
-            ns.Print("|cffF0A830PRETEND TANK ON|r -- callouts now fire for tank busters even "
-                .. "though you are not tanking. For testing only; turn it back off before "
-                .. "playing normally. The aggro check still records what it WOULD have said.")
+            ns.Print(ns.L("|cffF0A830PRETEND TANK ON|r -- callouts now fire for tank busters even ")
+                .. ns.L("though you are not tanking. For testing only; turn it back off before ")
+                .. ns.L("playing normally. The aggro check still records what it WOULD have said."))
             local problems = DiagProblems()
-            for i = 1, #problems do ns.Print("  |cffff6060still blocked:|r " .. problems[i]) end
+            for i = 1, #problems do ns.Print(ns.L("  |cffff6060still blocked:|r ") .. problems[i]) end
         else
-            ns.Print("|cff6DD09APretend Tank off|r -- back to normal tank-only behaviour.")
+            ns.Print(ns.L("|cff6DD09APretend Tank off|r -- back to normal tank-only behaviour."))
         end
         return
     end
@@ -5975,7 +6059,7 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
     -- licensed pack left as a licence-free string. Contributors are told it directly.
     if arg == "share" then
         if not ns.ExportPack then
-            ns.Print("this build has no profile export.")
+            ns.Print(ns.L("this build has no profile export."))
             return
         end
         local packName = (rest and rest ~= "") and rest or "Naowh"
@@ -5984,10 +6068,10 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         if not str then ns.Print("|cffff6060" .. tostring(err) .. "|r") return end
         if ns.ShowDiagExport then
             ns.ShowDiagExport(str)
-            ns.Print("your whole active profile, ready to send back. It is marked as worked "
-                .. "on from their pack, so they can see what it is.")
+            ns.Print(ns.L("your whole active profile, ready to send back. It is marked as worked ")
+                .. ns.L("on from their pack, so they can see what it is."))
         else
-            ns.Print("|cffff6060nowhere to show the string in this build.|r")
+            ns.Print(ns.L("|cffff6060nowhere to show the string in this build.|r"))
         end
         return
     end
@@ -5997,15 +6081,15 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         t.trace = not t.trace and true or nil
         if t.trace then
             if type(t.callLog) == "table" then wipe(t.callLog) end
-            ns.Print("|cff6DD09Atrace ON|r -- run your key, then /nutank trace again to stop "
-                .. "and /nutank export to get the text to send.")
+            ns.Print(ns.L("|cff6DD09Atrace ON|r -- run your key, then /nutank trace again to stop ")
+                .. ns.L("and /nutank export to get the text to send."))
             local problems = DiagProblems()
             for i = 1, #problems do
-                ns.Print("  |cffff6060this trace will capture nothing:|r " .. problems[i])
+                ns.Print(ns.L("  |cffff6060this trace will capture nothing:|r ") .. problems[i])
             end
         else
-            ns.Print(("|cffF0A830trace OFF|r -- %d entries recorded. /nutank export opens them "
-                .. "in a copyable box."):format(type(t.callLog) == "table" and #t.callLog or 0))
+            ns.Print((ns.L("|cffF0A830trace OFF|r -- %d entries recorded. /nutank export opens them ")
+                .. ns.L("in a copyable box.")):format(type(t.callLog) == "table" and #t.callLog or 0))
         end
         return
     end
@@ -6019,34 +6103,34 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         if not pr then
             ns.speakProf = { pickN = 0, pickSum = 0, pickMax = 0,
                              ttsN = 0, ttsSum = 0, ttsMax = 0 }
-            ns.Print("|cff6DD09Acallout timing ON|r -- pull once, then /nutank speaktime "
-                .. "again to stop and read it.")
+            ns.Print(ns.L("|cff6DD09Acallout timing ON|r -- pull once, then /nutank speaktime ")
+                .. ns.L("again to stop and read it."))
             if not TRDB().voiceOn then
-                ns.Print("  |cffff6060this will record nothing:|r Speak Which Defensive to "
-                    .. "Use is off, and that switch gates the whole callout.")
+                ns.Print(ns.L("  |cffff6060this will record nothing:|r Speak Which Defensive to ")
+                    .. ns.L("Use is off, and that switch gates the whole callout."))
             end
             return
         end
         ns.speakProf = nil
         if pr.pickN == 0 then
-            ns.Print("|cffF0A830callout timing OFF|r -- no callouts fired, so there is "
-                .. "nothing to report.")
+            ns.Print(ns.L("|cffF0A830callout timing OFF|r -- no callouts fired, so there is ")
+                .. ns.L("nothing to report."))
             return
         end
-        ns.Print(("|cff0091edcallout timing|r (build %s), %d callout(s):")
+        ns.Print((ns.L("|cff0091edcallout timing|r (build %s), %d callout(s):"))
             :format(BuildString(), pr.pickN))
-        ns.Print(("  choosing the defensive: avg %.2fms, worst %.2fms, total %.0fms")
+        ns.Print((ns.L("  choosing the defensive: avg %.2fms, worst %.2fms, total %.0fms"))
             :format(pr.pickSum / pr.pickN, pr.pickMax, pr.pickSum))
         if pr.ttsN > 0 then
-            ns.Print(("  speaking it: avg %.2fms, worst %.2fms, total %.0fms, %d utterance(s)")
+            ns.Print((ns.L("  speaking it: avg %.2fms, worst %.2fms, total %.0fms, %d utterance(s)"))
                 :format(pr.ttsSum / pr.ttsN, pr.ttsMax, pr.ttsSum, pr.ttsN))
         else
-            ns.Print("  speaking it: never reached -- every callout was suppressed or muted.")
+            ns.Print(ns.L("  speaking it: never reached -- every callout was suppressed or muted."))
         end
         -- The whole point of the split. Windows synthesises on the calling thread, so time
         -- inside SpeakText is the client standing still.
-        local worst = pr.ttsMax > pr.pickMax and "speaking" or "choosing"
-        ns.Print(("  worst single frame was |cffF0A830%s|r, at %.2fms.")
+        local worst = pr.ttsMax > pr.pickMax and ns.L("speaking") or ns.L("choosing")
+        ns.Print((ns.L("  worst single frame was |cffF0A830%s|r, at %.2fms."))
             :format(worst, math.max(pr.ttsMax, pr.pickMax)))
         return
     end
@@ -6055,27 +6139,27 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         local t = TRDB()
         local log = type(t.callLog) == "table" and t.callLog or {}
         local out = {}
-        out[#out + 1] = ("build %s | spec %d | tank %s | pretendTank %s | slots %d | trace %s"):format(
+        out[#out + 1] = (ns.L("build %s | spec %d | tank %s | pretendTank %s | slots %d | trace %s")):format(
             BuildString(), specID, tostring(isTank), tostring(t.pretendTank and true or false),
             activeSlots, tostring(t.trace and true or false))
         -- inInstance is the one that decides whether registering can happen; restrictedHere
         -- reads true everywhere and is kept only so a future report can show it still does.
-        out[#out + 1] = ("combat log registered=%s inInstance=%s restrictedHere=%s lines=%d usable=%d ownAuras=%d"):format(
+        out[#out + 1] = (ns.L("combat log registered=%s inInstance=%s restrictedHere=%s lines=%d usable=%d ownAuras=%d")):format(
             tostring(watcher:IsEventRegistered("COMBAT_LOG_EVENT_UNFILTERED")),
             tostring(IsInInstance()),
             tostring(C_CombatLog and C_CombatLog.IsCombatLogRestricted
                 and C_CombatLog.IsCombatLogRestricted()),
             cleuLines, cleuUsable, cleuOwnAuras)
-        out[#out + 1] = ("timeline=%s aggroGate=%s coveredSkip=%s leadTime=%s"):format(
+        out[#out + 1] = (ns.L("timeline=%s aggroGate=%s coveredSkip=%s leadTime=%s")):format(
             tostring(TimelineAvailable()), tostring(isTank), tostring(t.coveredSkip ~= false),
             tostring(t.leadTime))
-        out[#out + 1] = ("%d entries"):format(#log)
+        out[#out + 1] = (ns.L("%d entries")):format(#log)
         local problems = DiagProblems()
-        for i = 1, #problems do out[#out + 1] = "PROBLEM: " .. problems[i] end
+        for i = 1, #problems do out[#out + 1] = ns.L("PROBLEM: ") .. problems[i] end
         if #log == 0 and #problems == 0 then
-            out[#out + 1] = "PROBLEM: nothing recorded, but the setup looks able to call -- "
-                .. "either no pull happened while tracing, or no boss mod broadcast a "
-                .. "curated ability (check /nutank keys during a pull)"
+            out[#out + 1] = ns.L("PROBLEM: nothing recorded, but the setup looks able to call -- ")
+                .. ns.L("either no pull happened while tracing, or no boss mod broadcast a ")
+                .. ns.L("curated ability (check /nutank keys during a pull)")
         end
         for i = 1, #log do out[#out + 1] = LogLine(log[i]) end
         ns.AppendChargeAudit(out)
@@ -6095,25 +6179,25 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         local enc = currentEncounter
         if not enc and ns.ObservedLastPull then enc = ns.ObservedLastPull() end
         if not enc then
-            ns.Print("no pull to report yet. Fight a boss with BigWigs or DBM running, or "
-                .. "open the Ability Reminders tab to browse what has been recorded.")
+            ns.Print(ns.L("no pull to report yet. Fight a boss with BigWigs or DBM running, or ")
+                .. ns.L("open the Ability Reminders tab to browse what has been recorded."))
             return
         end
         local diffs = ns.ObservedDifficulties and ns.ObservedDifficulties(enc) or {}
         if #diffs == 0 then
-            ns.Print(("nothing recorded for encounter %s yet. Recording rides the boss "
-                .. "mods, so it needs Boss Addon set to BigWigs or DBM (currently %s), and "
-                .. "a real boss encounter -- trash fires no encounter events."):format(
+            ns.Print((ns.L("nothing recorded for encounter %s yet. Recording rides the boss ")
+                .. ns.L("mods, so it needs Boss Addon set to BigWigs or DBM (currently %s), and ")
+                .. ns.L("a real boss encounter -- trash fires no encounter events.")):format(
                 tostring(enc), ns.BossSource()))
             return
         end
         if not currentEncounter then
-            ns.Print(("|cff9a9ea6last pull, encounter %s|r"):format(tostring(enc)))
+            ns.Print((ns.L("|cff9a9ea6last pull, encounter %s|r")):format(tostring(enc)))
         end
         for _, d in ipairs(diffs) do
             local block = ns.ObservedFor(enc, tonumber(d.key))
             local name = GetDifficultyInfo and GetDifficultyInfo(tonumber(d.key))
-            ns.Print(("|cff0091edobserved|r %s (%s): %d pull(s), longest %.0fs"):format(
+            ns.Print((ns.L("|cff0091edobserved|r %s (%s): %d pull(s), longest %.0fs")):format(
                 tostring(name or "?"), d.key, block.pulls or 0, block.longest or 0))
             for sid, list in pairs(block.casts or {}) do
                 local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
@@ -6137,13 +6221,13 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         local cat = enc and BossModCatalogueTable(false, enc)
         if not cat or not next(cat) then
             ns.Print(enc
-                and ("nothing recorded for encounter %s yet. Either no boss mod broadcast "
-                    .. "anything, or this ran outside a pull."):format(tostring(enc))
-                or "not in an encounter, so there is nothing to attribute keys to. Run this "
-                    .. "during or right after a pull.")
+                and (ns.L("nothing recorded for encounter %s yet. Either no boss mod broadcast ")
+                    .. ns.L("anything, or this ran outside a pull.")):format(tostring(enc))
+                or ns.L("not in an encounter, so there is nothing to attribute keys to. Run this ")
+                    .. ns.L("during or right after a pull."))
             return
         end
-        ns.Print(("|cff0091edboss mod keys|r seen this pull (encounter %s):"):format(tostring(enc)))
+        ns.Print((ns.L("|cff0091edboss mod keys|r seen this pull (encounter %s):")):format(tostring(enc)))
         for key, e in pairs(cat) do
             local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(key)
             local curated = ns.TANK_ABILITIES and ns.TANK_ABILITIES[key]
@@ -6151,16 +6235,16 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
             local binding = ns.BindingForBossModKey(enc, key)
             local verdict
             if on and binding and binding.mode == "custom" then
-                verdict = "|cff9a9ea6steps aside to its Ability Reminder|r"
+                verdict = ns.L("|cff9a9ea6steps aside to its Ability Reminder|r")
             elseif on then
-                verdict = "|cff6DD09Awould call|r"
+                verdict = ns.L("|cff6DD09Awould call|r")
             else
-                verdict = "|cffff6060OFF for this boss|r"
+                verdict = ns.L("|cffff6060OFF for this boss|r")
             end
             ns.Print(("  %d %s -- %s/%s x%d -- %s, %s"):format(
                 key, (info and info.name) or "?", tostring(e.mod), tostring(e.kind),
                 e.seen or 0,
-                curated and "in the tank list" or "|cff9a9ea6not a tank ability|r",
+                curated and ns.L("in the tank list") or ns.L("|cff9a9ea6not a tank ability|r"),
                 verdict))
         end
         return
@@ -6168,7 +6252,7 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
 
     if arg == "catalogue" or arg == "catalog" then
         if not (C_EncounterEvents and C_EncounterEvents.GetEventList) then
-            ns.Print("C_EncounterEvents is not available on this client.")
+            ns.Print(ns.L("C_EncounterEvents is not available on this client."))
             return
         end
         local ids = C_EncounterEvents.GetEventList()
@@ -6194,7 +6278,7 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
                 end
             end
         end
-        ns.Print(("catalogue: %d events, %d tank-flagged, %d unreadable"):format(total, tank, unreadable))
+        ns.Print((ns.L("catalogue: %d events, %d tank-flagged, %d unreadable")):format(total, tank, unreadable))
         return
     end
 
@@ -6206,7 +6290,7 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
     if arg == "secrecy" or arg == "voice" then
         local list = UserList(specID, false)
         if not (list and #list > 0) then
-            ns.Print("no priority list for this spec yet -- add a defensive first.")
+            ns.Print(ns.L("no priority list for this spec yet -- add a defensive first."))
             return
         end
         if C_RestrictedActions and C_RestrictedActions.IsAddOnRestrictionActive and Enum.AddOnRestrictionType then
@@ -6218,12 +6302,12 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
                     parts[#parts + 1] = ("%s=%s"):format(key, on and "ON" or "off")
                 end
             end
-            ns.Print("restrictions: " .. table.concat(parts, "  "))
+            ns.Print(ns.L("restrictions: ") .. table.concat(parts, "  "))
         end
         for i = 1, #list do
             local sid = list[i]
             local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
-            ns.Print(("%d. %s -- secrecy=%s speakable_now=%s"):format(
+            ns.Print((ns.L("%d. %s -- secrecy=%s speakable_now=%s")):format(
                 i, (info and info.name) or sid, SecrecyLevelName(sid), tostring(CanNameSpellAloud(sid))))
         end
         return
@@ -6240,10 +6324,10 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
             local link = GetInventoryItemLink("player", slot)
             if link and C_Item and C_Item.GetItemSpell then
                 local spellName, spellID = C_Item.GetItemSpell(link)
-                ns.Print(("trinket slot %d: %s -> %s"):format(slot, link,
-                    spellID and ("%s (%d)"):format(tostring(spellName), spellID) or "no on-use spell"))
+                ns.Print((ns.L("trinket slot %d: %s -> %s")):format(slot, link,
+                    spellID and ("%s (%d)"):format(tostring(spellName), spellID) or ns.L("no on-use spell")))
             else
-                ns.Print(("trinket slot %d: empty"):format(slot))
+                ns.Print((ns.L("trinket slot %d: empty")):format(slot))
             end
         end
         local CV = C_CooldownViewer
@@ -6269,16 +6353,16 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
                         shown = shown + 1
                         -- Everything the filter looks at, so a missing spell can be traced to
                         -- the signal that failed rather than guessed at.
-                        ns.Print(("%s (%d) bigDef=%s ext=%s selfAura=%s hasAura=%s -> %s"):format(
+                        ns.Print((ns.L("%s (%d) bigDef=%s ext=%s selfAura=%s hasAura=%s -> %s")):format(
                             (si and si.name) or "?", sid, tostring(flag), tostring(ext),
                             tostring(info.selfAura), tostring(info.hasAura),
-                            ns.InfoIsDefensive(info) and "|cff6DD09AINCLUDED|r" or "|cffff6060skipped|r"))
+                            ns.InfoIsDefensive(info) and ns.L("|cff6DD09AINCLUDED|r") or ns.L("|cffff6060skipped|r")))
                     end
                 end
             end
         end
         if shown == 0 then
-            ns.Print("the Cooldown Manager returned nothing -- open it once, then retry.")
+            ns.Print(ns.L("the Cooldown Manager returned nothing -- open it once, then retry."))
         end
         return
     end
@@ -6298,8 +6382,8 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
     if arg == "tanksheet" then
         local cache = ns.ScrapeBosses and ns.ScrapeBosses()
         if not cache then
-            ns.Print("the journal has not been scraped yet -- open a Dungeon Bosses or "
-                .. "Raid Bosses page once, then retry.")
+            ns.Print(ns.L("the journal has not been scraped yet -- open a Dungeon Bosses or ")
+                .. ns.L("Raid Bosses page once, then retry."))
             return
         end
         local extrasFor = {}
@@ -6330,7 +6414,7 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         local ids = {}
         for sid in pairs(curated) do ids[#ids + 1] = sid end
         table.sort(ids)
-        ns.Print(("|cff0091edtank sheet cross-check|r against %d journal-scraped bosses:")
+        ns.Print((ns.L("|cff0091edtank sheet cross-check|r against %d journal-scraped bosses:"))
             :format(#cache.instances))
         for i = 1, #ids do
             local sid = ids[i]
@@ -6347,33 +6431,33 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
                 -- Triple Shot entry that had to come out read exactly like this.
                 contra = contra + 1
                 contraLines[#contraLines + 1] =
-                    ("  |cffff6060%s|r (%d) -- journal says: %s"):format(name, sid, extras)
+                    (ns.L("  |cffff6060%s|r (%d) -- journal says: %s")):format(name, sid, extras)
             else
                 -- No role flag either way. Not evidence against us: Apex Predator lands here
                 -- while BigWigs' own module renames it CL.tank_combo.
                 unconfirmed = unconfirmed + 1
                 unconfLines[#unconfLines + 1] =
-                    ("  %s (%d) -- no role flag%s"):format(name, sid,
-                        extras ~= "" and (", only: " .. extras) or "")
+                    (ns.L("  %s (%d) -- no role flag%s")):format(name, sid,
+                        extras ~= "" and (ns.L(", only: ") .. extras) or "")
             end
         end
 
         if contra > 0 then
-            ns.Print("|cffff6060contradicted|r -- the journal names a different role:")
+            ns.Print(ns.L("|cffff6060contradicted|r -- the journal names a different role:"))
             for i = 1, #contraLines do ns.Print(contraLines[i]) end
         end
         if unconfirmed > 0 then
-            ns.Print("|cffffc000unconfirmed|r -- no role flag either way, check the boss mod "
-                .. "before changing anything:")
+            ns.Print(ns.L("|cffffc000unconfirmed|r -- no role flag either way, check the boss mod ")
+                .. ns.L("before changing anything:"))
             for i = 1, #unconfLines do ns.Print(unconfLines[i]) end
         end
-        ns.Print(("%d checked: %d confirmed, %d contradicted, %d unconfirmed, %d not in this "
-            .. "season's journal pool"):format(checked, agree, contra, unconfirmed, noData))
+        ns.Print((ns.L("%d checked: %d confirmed, %d contradicted, %d unconfirmed, %d not in this ")
+            .. ns.L("season's journal pool")):format(checked, agree, contra, unconfirmed, noData))
         if contra == 0 then
-            ns.Print("nothing the journal actively contradicts.")
+            ns.Print(ns.L("nothing the journal actively contradicts."))
         end
         if noData > 0 then
-            ns.Print("open more Dungeon Bosses and Raid Bosses pages to cover the rest.")
+            ns.Print(ns.L("open more Dungeon Bosses and Raid Bosses pages to cover the rest."))
         end
         return
     end
@@ -6389,8 +6473,8 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
     -- are handled above; leaving them listed here made their retirement notice look live.
     if arg == "mute" or arg == "unmute" or arg == "tank" or arg == "untank"
         or arg == "learn" or arg == "marked" or arg == "muted" then
-        ns.Print("/nutank " .. arg .. " was part of the old fingerprint engine and has been "
-            .. "retired. Enable or disable an ability from Setup's own checklist instead.")
+        ns.Print("/nutank " .. arg .. ns.L(" was part of the old fingerprint engine and has been ")
+            .. ns.L("retired. Enable or disable an ability from Setup's own checklist instead."))
         return
     end
 
@@ -6403,13 +6487,13 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         RefreshSpec()
         ns.Apply()
         if activeSlots == 0 then
-            ns.Print("nothing on your priority list is talented, so there is nothing to read. "
-                .. "Add defensives in Smart Reminders, or check you are on the right spec.")
+            ns.Print(ns.L("nothing on your priority list is talented, so there is nothing to read. ")
+                .. ns.L("Add defensives in Smart Reminders, or check you are on the right spec."))
             return
         end
         ResyncModel()
         local now, anyReady = GetTime(), false
-        ns.Print(("|cff0091edcooldowns|r (build %s), in priority order:"):format(BuildString()))
+        ns.Print((ns.L("|cff0091edcooldowns|r (build %s), in priority order:")):format(BuildString()))
         for i = 1, activeSlots do
             local sid = slots[i].spellID
             local info = C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
@@ -6417,21 +6501,21 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
             if ok and ready then anyReady = true end
             local st = chargeState[ns.CooldownKey(sid)]
             local detail = st
-                and ("%d/%d charges, recharge %s (%s)"):format(
+                and (ns.L("%d/%d charges, recharge %s (%s)")):format(
                     ChargesAvailable(sid) or 0, st.max,
-                    st.recharge > 0 and ("%.0fs"):format(st.recharge) or "unknown",
-                    st.rechargeSrc == "client" and "|cff6DD09Aclient|r"
+                    st.recharge > 0 and (ns.L("%.0fs")):format(st.recharge) or "unknown",
+                    st.rechargeSrc == "client" and ns.L("|cff6DD09Aclient|r")
                         or ("|cffF0A830" .. tostring(st.rechargeSrc) .. "|r"))
-                or (CooldownRunning(sid) == nil and "cooldown unreadable, using the estimate"
-                    or "cooldown read directly")
+                or (CooldownRunning(sid) == nil and ns.L("cooldown unreadable, using the estimate")
+                    or ns.L("cooldown read directly"))
             ns.Print(("  %d. %s -- %s (%s)"):format(i, (info and info.name) or tostring(sid),
-                ok and (ready and "|cff6DD09AREADY|r" or "|cffff6060on cooldown|r")
-                    or "|cffff6060read failed|r", detail))
+                ok and (ready and ns.L("|cff6DD09AREADY|r") or ns.L("|cffff6060on cooldown|r"))
+                    or ns.L("|cffff6060read failed|r"), detail))
         end
         if anyReady then
-            ns.Print("  at least one is up, so a callout now would name it, not an external.")
+            ns.Print(ns.L("  at least one is up, so a callout now would name it, not an external."))
         else
-            ns.Print("  nothing is up, so a callout now WOULD say " .. tostring(TRDB().voiceNone) .. ".")
+            ns.Print(ns.L("  nothing is up, so a callout now WOULD say ") .. tostring(TRDB().voiceNone) .. ".")
         end
         return
     end
@@ -6443,7 +6527,7 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
     if arg == "calls" then
         local log = TRDB().callLog
         if not (log and #log > 0) then
-            ns.Print("nothing logged yet this session.")
+            ns.Print(ns.L("nothing logged yet this session."))
             return
         end
         for i = 1, #log do
@@ -6454,18 +6538,18 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
 
     if arg == "test" then
         if not TRDB().enabled then
-            ns.Print("switch the reminder on first.")
+            ns.Print(ns.L("switch the reminder on first."))
             return
         end
         RefreshSpec()
         ns.Apply()
         if activeSlots == 0 then
-            ns.Print("nothing on your priority list is talented, so there is nothing to show.")
+            ns.Print(ns.L("nothing on your priority list is talented, so there is nothing to show."))
             return
         end
         ns.ForceShowTest()
-        ns.Print(("showing %d slot(s) for 5s with the tank filter bypassed. If you see nothing, "
-            .. "the icon is hidden or off-screen -- try Reset Icon Position."):format(activeSlots))
+        ns.Print((ns.L("showing %d slot(s) for 5s with the tank filter bypassed. If you see nothing, ")
+            .. ns.L("the icon is hidden or off-screen -- try Reset Icon Position.")):format(activeSlots))
         return
     end
 
@@ -6473,20 +6557,20 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         if ns.PrintBossSummary then
             ns.PrintBossSummary()
         else
-            ns.Print("|cffff6060the boss browser did not load|r -- "
-                .. "NaowhUI_TankReminder_Bosses.lua is missing from the addon folder.")
+            ns.Print(ns.L("|cffff6060the boss browser did not load|r -- ")
+                .. ns.L("NaowhUI_TankReminder_Bosses.lua is missing from the addon folder."))
         end
         return
     end
 
     if arg == "gate" then
         if not canGate then
-            ns.Print("SetEventIconTextures is not available on this client.")
+            ns.Print(ns.L("SetEventIconTextures is not available on this client."))
             return
         end
         local list = C_EncounterTimeline.GetEventList and C_EncounterTimeline.GetEventList()
         if not (list and #list > 0) then
-            ns.Print("no timeline events right now -- run this during a boss encounter.")
+            ns.Print(ns.L("no timeline events right now -- run this during a boss encounter."))
             return
         end
         local probe = UIParent:CreateTexture(nil, "BACKGROUND")
@@ -6502,10 +6586,10 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
             -- from tainted code. A refusal here is the gate WORKING -- it means the engine
             -- really did write the secret bit into our texture's alpha.
             local read, alpha = pcall(function() return tostring(probe:GetAlpha()) end)
-            ns.Print(("gate: event %s -> set=%s read=%s"):format(
+            ns.Print((ns.L("gate: event %s -> set=%s read=%s")):format(
                 tostring(id),
-                set and "ok" or "REFUSED",
-                read and alpha or "SECRET/refused (gate is live)"))
+                set and "ok" or ns.L("REFUSED"),
+                read and alpha or ns.L("SECRET/refused (gate is live)")))
         end
         probe:SetTexture(nil)
         probe:Hide()
@@ -6519,52 +6603,52 @@ SlashCmdList["NAOWHUITANK"] = function(msg)
         return
     end
     if arg ~= "status" then
-        ns.Print("unknown command '" .. arg .. "' -- /nutank status for diagnostics, or see below.")
+        ns.Print(ns.L("unknown command '") .. arg .. ns.L("' -- /nutank status for diagnostics, or see below."))
     end
 
     -- The build, first, because every report that cost a run to diagnose started with not
     -- knowing which one was loaded. A version string is weaker evidence than a stack line,
     -- but it is the only thing a tester can read out without an error to paste.
-    ns.Print(("build: %s"):format(BuildString()))
-    ns.Print(("tank reminder: enabled=%s spec=%d tank=%s slots=%d"):format(
+    ns.Print((ns.L("build: %s")):format(BuildString()))
+    ns.Print((ns.L("tank reminder: enabled=%s spec=%d tank=%s slots=%d")):format(
         tostring(TRDB().enabled), specID, tostring(isTank), activeSlots))
     if TRDB().pretendTank then
-        ns.Print("|cffF0A830PRETEND TANK IS ON|r -- the aggro gate is ignored, so abilities "
-            .. "call whether or not you hold the boss. /nutank pretendtank turns it off.")
+        ns.Print(ns.L("|cffF0A830PRETEND TANK IS ON|r -- the aggro gate is ignored, so abilities ")
+            .. ns.L("call whether or not you hold the boss. /nutank pretendtank turns it off."))
     end
-    ns.Print(("boss addon: %s"):format(ns.BossSource()))
+    ns.Print((ns.L("boss addon: %s")):format(ns.BossSource()))
     if currentEncounter then
         local diffName = currentDifficultyID and GetDifficultyInfo
             and GetDifficultyInfo(currentDifficultyID)
-        ns.Print(("pull: enc=%s elapsed=%.1fs difficulty=%s(%s) stage=%s%s"):format(
+        ns.Print((ns.L("pull: enc=%s elapsed=%.1fs difficulty=%s(%s) stage=%s%s")):format(
             tostring(currentEncounter),
             currentEncounterStartedAt and (GetTime() - currentEncounterStartedAt) or -1,
             tostring(diffName or "?"), tostring(currentDifficultyID),
             tostring(currentStage),
-            currentStageAt and (" stageElapsed=%.1fs"):format(GetTime() - currentStageAt) or ""))
+            currentStageAt and (ns.L(" stageElapsed=%.1fs")):format(GetTime() - currentStageAt) or ""))
     end
-    ns.Print(("timeline: available=%s bossWarnings=%s timelineDisplay=%s"):format(
+    ns.Print((ns.L("timeline: available=%s bossWarnings=%s timelineDisplay=%s")):format(
         tostring(TimelineAvailable()),
-        CombatWarningsOff() and "|cffff6060OFF|r" or "on",
-        TimelineDisplayOff() and "off (fine -- data still flows)" or "on"))
-    ns.Print(("engine: select=%s gate=%s bar=%s sound=%s"):format(
+        CombatWarningsOff() and ns.L("|cffff6060OFF|r") or "on",
+        TimelineDisplayOff() and ns.L("off (fine -- data still flows)") or "on"))
+    ns.Print((ns.L("engine: select=%s gate=%s bar=%s sound=%s")):format(
         tostring(canSelect and true or false), tostring(canGate and true or false),
         tostring(canBar and true or false), tostring(canSound and true or false)))
     -- Asked of the frame rather than tracked in a flag of our own, so it answers for the
     -- code that is actually loaded. The two counters only move during an encounter (the
     -- handler returns on currentEncounter == nil before reaching them), so a zero outside
     -- a pull says nothing -- registered= is the one that answers on its own.
-    ns.Print(("aura cover: bigDefensiveHits=%d (Blizzard's own classification; 0 all pull "
-        .. "means the aura enumeration is refused here)"):format(bigDefSeen))
-    ns.Print(("combat log: registered=%s inInstance=%s restrictedHere=%s lines=%d usable=%d ownAuras=%d playerGUID=%s"):format(
+    ns.Print((ns.L("aura cover: bigDefensiveHits=%d (Blizzard's own classification; 0 all pull ")
+        .. ns.L("means the aura enumeration is refused here)")):format(bigDefSeen))
+    ns.Print((ns.L("combat log: registered=%s inInstance=%s restrictedHere=%s lines=%d usable=%d ownAuras=%d playerGUID=%s")):format(
         watcher:IsEventRegistered("COMBAT_LOG_EVENT_UNFILTERED") and "true"
-            or "|cffff6060false|r",
+            or ns.L("|cffff6060false|r"),
         tostring(IsInInstance()),
         tostring(C_CombatLog and C_CombatLog.IsCombatLogRestricted
             and C_CombatLog.IsCombatLogRestricted()),
         cleuLines, cleuUsable, cleuOwnAuras,
-        PlayerGUID() and "readable" or "|cffff6060UNREADABLE|r"))
-    ns.Print("usage: /nutank status | observed | cds | calls | keys | trace | export | pretendtank | test | catalogue | gate | secrecy | bosses | defensives | tanksheet")
+        PlayerGUID() and "readable" or ns.L("|cffff6060UNREADABLE|r")))
+    ns.Print(ns.L("usage: /nutank status | observed | cds | calls | keys | trace | export | pretendtank | test | catalogue | gate | secrecy | bosses | defensives | tanksheet"))
 end
 
 -------------------------------------------------------------------------------
@@ -6686,7 +6770,7 @@ local function CollectFromSpellbook(seen, list, out)
                 end
                 if keep and not (list and ns.ListIndexOf(list, sid)) then
                     out[#out + 1] = {
-                        id = sid, name = item.name or ("Spell " .. sid),
+                        id = sid, name = item.name or (ns.L("Spell ") .. sid),
                         icon = item.iconID, cd = (type(base) == "number" and base) or 0,
                     }
                 end
@@ -6732,7 +6816,7 @@ local function CollectCandidates()
                     local base = GetSpellBaseCooldown and GetSpellBaseCooldown(spellID)
                     out[#out + 1] = {
                         id   = spellID,
-                        name = spellName or (si and si.name) or ("Spell " .. spellID),
+                        name = spellName or (si and si.name) or (ns.L("Spell ") .. spellID),
                         icon = si and si.iconID,
                         cd   = (type(base) == "number" and base) or 0,
                     }
@@ -6760,7 +6844,7 @@ local function CollectCandidates()
                         if not (list and ns.ListIndexOf(list, castID)) then
                             out[#out + 1] = {
                                 id   = castID,
-                                name = (si and si.name) or ("Spell " .. castID),
+                                name = (si and si.name) or (ns.L("Spell ") .. castID),
                                 icon = si and si.iconID,
                                 cd   = (type(base) == "number" and base) or 0,
                             }
@@ -6792,7 +6876,7 @@ local function AddSpell(spellID)
     if specID == 0 then
         RefreshSpec()
         if specID == 0 then
-            ns.Print("cannot tell which specialization you are in yet -- try again in a moment.")
+            ns.Print(ns.L("cannot tell which specialization you are in yet -- try again in a moment."))
             return false
         end
     end
@@ -6800,7 +6884,7 @@ local function AddSpell(spellID)
     if not cur then return false end
     if ListIndexOf(cur, spellID) then return false end
     if #cur >= MAX_SLOTS then
-        ns.Print(("your list is full (%d maximum) -- remove one first."):format(MAX_SLOTS))
+        ns.Print((ns.L("your list is full (%d maximum) -- remove one first.")):format(MAX_SLOTS))
         return false
     end
     cur[#cur + 1] = spellID
@@ -6817,7 +6901,7 @@ local function BuildPicker()
 
     local title = ns.Font(panel, 14, "OUTLINE")
     title:SetPoint("TOP", panel, "TOP", 0, -16)
-    title:SetText("Add a Defensive")
+    title:SetText(ns.L("Add a Defensive"))
 
     local hint = ns.Font(panel, 11, nil, ns.THEME.muted)
     hint:SetPoint("TOP", title, "BOTTOM", 0, -6)
@@ -6864,7 +6948,7 @@ local function BuildPicker()
             row:SetPoint("TOP", content, "TOP", 0, -y)
             row.tex:SetTexture(c.icon)
             row.name:SetText(c.name)
-            row.cd:SetText(("%ds"):format(math.floor(c.cd / 1000)))
+            row.cd:SetText((ns.L("%ds")):format(math.floor(c.cd / 1000)))
             row:SetScript("OnEnter", function(self) self.hl:Show() end)
             row:SetScript("OnLeave", function(self) self.hl:Hide() end)
             row:SetScript("OnClick", function()
@@ -6879,27 +6963,27 @@ local function BuildPicker()
         content:SetHeight(math.max(y, 10))
         if #cands == 0 then
             hint:SetText(pickerShowAll
-                and "Nothing left to add."
-                or "No major defensives found. Try Show All Cooldowns.")
+                and ns.L("Nothing left to add.")
+                or ns.L("No major defensives found. Try Show All Cooldowns."))
         else
             hint:SetText(pickerShowAll
-                and "Every cooldown you have. Click one to add it."
-                or "Your major defensives. Click one to add it to the bottom of the list.")
+                and ns.L("Every cooldown you have. Click one to add it.")
+                or ns.L("Your major defensives. Click one to add it to the bottom of the list."))
         end
     end
 
     pickPopup = { dimmer = dimmer, refresh = Refresh }
 
-    toggle = ns.Button(panel, "Show All Cooldowns", 150, 22, function()
+    toggle = ns.Button(panel, ns.L("Show All Cooldowns"), 150, 22, function()
         pickerShowAll = not pickerShowAll
         Refresh()
     end)
     toggle:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 14, 14)
-    ns.Tooltip(toggle, "Show All Cooldowns",
-        "The list is filtered to what the game marks as a major defensive. Turn this on to "
-        .. "see every cooldown you have, in case something you want is not flagged.")
+    ns.Tooltip(toggle, ns.L("Show All Cooldowns"),
+        ns.L("The list is filtered to what the game marks as a major defensive. Turn this on to ")
+        .. ns.L("see every cooldown you have, in case something you want is not flagged."))
 
-    ns.Button(panel, "Done", 110, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Done"), 110, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -14, 14)
 
     return pickPopup
@@ -6938,7 +7022,7 @@ local function ShowCalloutEditor(title, current, onAccept, spellID)
         -- stacking them keeps the dialog the same height either way.
         local soundLbl = ns.Font(panel, 11, nil, ns.THEME.muted)
         soundLbl:SetPoint("TOPLEFT", modeHolder, "BOTTOMLEFT", 0, -16)
-        soundLbl:SetText("Sound")
+        soundLbl:SetText(ns.L("Sound"))
 
         local ddHolder = CreateFrame("Frame", nil, panel)
         ddHolder:SetPoint("TOPLEFT", soundLbl, "BOTTOMLEFT", 0, -4)
@@ -6946,7 +7030,7 @@ local function ShowCalloutEditor(title, current, onAccept, spellID)
 
         local textLbl = ns.Font(panel, 11, nil, ns.THEME.muted)
         textLbl:SetPoint("TOPLEFT", modeHolder, "BOTTOMLEFT", 0, -16)
-        textLbl:SetText("Spoken text")
+        textLbl:SetText(ns.L("Spoken text"))
 
         -- The one hand-built widget: the factory has no text input.
         local box = CreateFrame("EditBox", nil, panel)
@@ -6974,7 +7058,7 @@ local function ShowCalloutEditor(title, current, onAccept, spellID)
             if textPopup._onAccept then textPopup._onAccept(box:GetText()) end
         end
 
-        local hear = ns.Button(panel, "Hear it", 96, 26, function()
+        local hear = ns.Button(panel, ns.L("Hear it"), 96, 26, function()
             local key = (textPopup._mode == "sound") and textPopup._soundKey or nil
             local EUI = ns.UI
             if key and textPopup._paths and EUI and EUI._PlayLSMSound then
@@ -6984,10 +7068,10 @@ local function ShowCalloutEditor(title, current, onAccept, spellID)
             end
         end)
         hear:SetPoint("BOTTOM", panel, "BOTTOM", -114, 16)
-        ns.Tooltip(hear, "Hear it", "Plays it exactly as it will sound in a fight.")
+        ns.Tooltip(hear, ns.L("Hear it"), ns.L("Plays it exactly as it will sound in a fight."))
 
-        ns.Button(panel, "Save", 96, 26, Accept):SetPoint("BOTTOM", panel, "BOTTOM", -6, 16)
-        ns.Button(panel, "Cancel", 96, 26, function() dimmer:Hide() end)
+        ns.Button(panel, ns.L("Save"), 96, 26, Accept):SetPoint("BOTTOM", panel, "BOTTOM", -6, 16)
+        ns.Button(panel, ns.L("Cancel"), 96, 26, function() dimmer:Hide() end)
             :SetPoint("BOTTOM", panel, "BOTTOM", 102, 16)
 
         box:SetScript("OnEnterPressed", Accept)
@@ -6997,8 +7081,8 @@ local function ShowCalloutEditor(title, current, onAccept, spellID)
     local tp = textPopup
     tp._onAccept = onAccept
     tp._spellID = spellID or 0
-    tp.head:SetText(title or "Callout")
-    tp.box:SetText(current or "")
+    tp.head:SetText(title or ns.L("Callout"))
+    tp.box:SetText(current == "Call for external" and ns.L(current) or (current or ""))
 
     -- Choices are refilled per open, since SharedMedia may have registered more by now.
     local paths, names, order = ns.SoundChoices()
@@ -7046,7 +7130,7 @@ local function ShowCalloutEditor(title, current, onAccept, spellID)
 
         tp.modeLbl = ns.Font(tp.modeHolder, 12, nil)
         tp.modeLbl:SetPoint("LEFT", tg, "RIGHT", 10, 0)
-        tp.modeLbl:SetText("Speak Text")
+        tp.modeLbl:SetText(ns.L("Speak Text"))
     end
 
     segRefresh = function()
@@ -7100,14 +7184,14 @@ function ns.BuildCoreSettings(parent, y)
     local W   = EUI.Widgets
     local _, h
 
-    _, h = W:SectionHeader(parent, "SMART REMINDERS", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("SMART REMINDERS"), y); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "toggle", text = "Smart Reminders",
-          tooltip = "Shows what to press when the boss timeline says an ability is about to land. "
-          .. "It picks the highest entry on your own list that you have talented and off "
-          .. "cooldown. Build that list below -- nothing is set up for you. Works on every "
-          .. "specialization.",
+        { type = "toggle", text = ns.L("Smart Reminders"),
+          tooltip = ns.L("Shows what to press when the boss timeline says an ability is about to land. ")
+          .. ns.L("It picks the highest entry on your own list that you have talented and off ")
+          .. ns.L("cooldown. Build that list below -- nothing is set up for you. Works on every ")
+          .. ns.L("specialization."),
           getValue = function() return TRDB().enabled end,
           setValue = function(v)
               TRDB().enabled = v
@@ -7124,30 +7208,30 @@ function ns.BuildCoreSettings(parent, y)
         -- anything with two tanks, and a five-man has one who holds every boss unit, so on
         -- the Setup tab it read as a global behaviour switch that does nothing in half the
         -- content. Same stored key, so nobody loses their choice.
-        { type = "toggle", text = "Enable Healer Reminders",
-          tooltip = "Show reminders marked Healer Reminder. Turning this off hides them and cancels "
-          .. "their pending alerts. Applies to every character and profile; imports do not change it. "
-          .. "Native debuff sound changes wait until combat and the encounter end.",
+        { type = "toggle", text = ns.L("Enable Healer Reminders"),
+          tooltip = ns.L("Show reminders marked Healer Reminder. Turning this off hides them and cancels ")
+          .. ns.L("their pending alerts. Applies to every character and profile; imports do not change it. ")
+          .. ns.L("Native debuff sound changes wait until combat and the encounter end."),
           getValue = ns.HealerRemindersEnabled,
           setValue = function(v) ns.SetHealerRemindersEnabled(v) end }
     ); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Boss Addon", width = 180,
-          values = { timeline = "Blizzard Timeline", bigwigs = "BigWigs", dbm = "DBM" },
+        { type = "dropdown", text = ns.L("Boss Addon"), width = 180,
+          values = { timeline = ns.L("Blizzard Timeline"), bigwigs = "BigWigs", dbm = "DBM" },
           order = { "timeline", "bigwigs", "dbm" },
-          tooltip = "Which single source drives the callouts. Blizzard Timeline is the "
-          .. "game's own encounter feed -- no addons needed, and per-ability sounds only "
-          .. "work here. BigWigs or DBM instead ride that mod's bars and messages -- "
-          .. "what powers timer/message reminders and phase (p2) note lines. Ability-timer "
-          .. "Raid Reminders are BigWigs only. The other two sources are ignored entirely.",
+          tooltip = ns.L("Which single source drives the callouts. Blizzard Timeline is the ")
+          .. ns.L("game's own encounter feed -- no addons needed, and per-ability sounds only ")
+          .. ns.L("work here. BigWigs or DBM instead ride that mod's bars and messages -- ")
+          .. ns.L("what powers timer/message reminders and phase (p2) note lines. Ability-timer ")
+          .. ns.L("Raid Reminders are BigWigs only. The other two sources are ignored entirely."),
           getValue = function() return TRDB().bossSource or "timeline" end,
           setValue = function(v)
               TRDB().bossSource = v
               ns.Apply()
               EUI:RefreshPage(true)
           end },
-        { type = "label", text = "      Callouts follow exactly one source." }
+        { type = "label", text = ns.L("      Callouts follow exactly one source.") }
     ); y = y - h
 
     -- Only worth saying when it is actually wrong. The timeline's own display toggle is
@@ -7155,38 +7239,38 @@ function ns.BuildCoreSettings(parent, y)
     -- data keeps flowing, so flagging it would be a false alarm for a lot of people.
     if TRDB().enabled and CombatWarningsOff() then
         _, h = W:DualRow(parent, y,
-            { type = "label", text = "|cffff6060Boss Warnings are off in the game options.|r" },
-            { type = "label", text = "Options, Advanced, Enable Boss Warnings." }
+            { type = "label", text = ns.L("|cffff6060Boss Warnings are off in the game options.|r") },
+            { type = "label", text = ns.L("Options, Advanced, Enable Boss Warnings.") }
         ); y = y - h
     end
 
     _, h = W:DualRow(parent, y,
-        { type = "toggle", text = "Skip When Already Covered",
-          tooltip = "Stays quiet when one of your defensives is already active as the "
-          .. "warning fires -- you are covered, no need to stack another.",
+        { type = "toggle", text = ns.L("Skip When Already Covered"),
+          tooltip = ns.L("Stays quiet when one of your defensives is already active as the ")
+          .. ns.L("warning fires -- you are covered, no need to stack another."),
           getValue = function() return TRDB().coveredSkip ~= false end,
           setValue = function(v) TRDB().coveredSkip = v end },
-        { type = "slider", text = "Warn This Many Seconds Early", min = 1, max = 5, step = 1,
-          tooltip = "How close to the hit the alert fires. The game announces abilities about "
-          .. "five seconds out; the alert waits and fires this many seconds before impact, so "
-          .. "lower is closer to the hit. When the game announces later than this, the alert "
-          .. "fires immediately. This is the BASE value every defensive uses -- override "
-          .. "one specifically from an ability's own cog on a boss's page, next to that "
-          .. "defensive on its preset list. That override can go negative too, to call out "
-          .. "AFTER the hit instead of before it.",
+        { type = "slider", text = ns.L("Warn This Many Seconds Early"), min = 1, max = 5, step = 1,
+          tooltip = ns.L("How close to the hit the alert fires. The game announces abilities about ")
+          .. ns.L("five seconds out; the alert waits and fires this many seconds before impact, so ")
+          .. ns.L("lower is closer to the hit. When the game announces later than this, the alert ")
+          .. ns.L("fires immediately. This is the BASE value every defensive uses -- override ")
+          .. ns.L("one specifically from an ability's own cog on a boss's page, next to that ")
+          .. ns.L("defensive on its preset list. That override can go negative too, to call out ")
+          .. ns.L("AFTER the hit instead of before it."),
           getValue = function() return TRDB().leadTime or 3 end,
           setValue = function(v) TRDB().leadTime = v end }
     ); y = y - h
 
     -- Its own row: the two above are a settled pair and the slider is long-labelled.
     _, h = W:DualRow(parent, y,
-        { type = "slider", text = "Your Own Cast Covers You For", min = 0, max = 15, step = 1,
-          tooltip = "The client refuses addons the combat log in this build, so a defensive "
-          .. "you press cannot be watched landing -- the press itself is all there is. This "
-          .. "is how long after one the callout stays quiet. Set it to the length of what "
-          .. "you actually press, or to 0 to hear about every hit even while covered. A "
-          .. "tank who pre-pops as the boss engages wants it low: at 10 seconds, a hit "
-          .. "five seconds after the press says nothing at all.",
+        { type = "slider", text = ns.L("Your Own Cast Covers You For"), min = 0, max = 15, step = 1,
+          tooltip = ns.L("The client refuses addons the combat log in this build, so a defensive ")
+          .. ns.L("you press cannot be watched landing -- the press itself is all there is. This ")
+          .. ns.L("is how long after one the callout stays quiet. Set it to the length of what ")
+          .. ns.L("you actually press, or to 0 to hear about every hit even while covered. A ")
+          .. ns.L("tank who pre-pops as the boss engages wants it low: at 10 seconds, a hit ")
+          .. ns.L("five seconds after the press says nothing at all."),
           getValue = function() return TRDB().coveredCastWindow or 6 end,
           setValue = function(v) TRDB().coveredCastWindow = v end }
     ); y = y - h
@@ -7208,7 +7292,7 @@ function ns.BuildPresetListSettings(parent, y)
     -- The player's own list for the current spec, in priority order. This addon ships no
     -- ability data, so an empty list here is the correct starting state -- the section says
     -- so rather than looking broken.
-    _, h = W:SectionHeader(parent, "PRESET LIST (THIS SPEC)", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("PRESET LIST (THIS SPEC)"), y); y = y - h
 
     -- Left: the presets you have for this spec, and a way to add more. Right: the active
     -- one's list, every row condensed to a name, a switch, and a settings cog.
@@ -7227,14 +7311,14 @@ function ns.BuildBarsSettings(parent, y)
     local W   = EUI.Widgets
     local _, h
 
-    _, h = W:SectionHeader(parent, "VISIBILITY OPTIONS", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("VISIBILITY OPTIONS"), y); y = y - h
 
     -- The countdown bar toggle lived here and was removed on tester feedback; the bar
     -- machinery stays for stored profiles that still have showBar set, it just cannot be
     -- switched on from the UI anymore.
     _, h = W:DualRow(parent, y,
-        { type = "toggle", text = "Show Icon",
-          tooltip = "The icon of the defensive to press.",
+        { type = "toggle", text = ns.L("Show Icon"),
+          tooltip = ns.L("The icon of the defensive to press."),
           getValue = function() return TRDB().showIcon end,
           setValue = function(v) TRDB().showIcon = v; ApplySize(); UpdatePreview() end },
         -- This toggle used to lock itself while the engine tank filter was on, because a
@@ -7242,11 +7326,11 @@ function ns.BuildBarsSettings(parent, y)
         -- ns.AbilityEnabledForBinding made the lock obsolete: it silences whole abilities
         -- upstream, so text is tank-only regardless -- and voice was never locked despite
         -- having the identical limitation, so the lock bought inconsistency, not honesty.
-        { type = "toggle", text = "Show Text Call Out",
-          tooltip = "Writes the callout on screen -- \"Barkskin\" -- for whichever defensive "
-          .. "it picked, and your fallback line when nothing is up. Only appears for "
-          .. "abilities enabled in that boss's ability list, in the Bosses tab. Set each "
-          .. "line's own wording in the list below.",
+        { type = "toggle", text = ns.L("Show Text Call Out"),
+          tooltip = ns.L("Writes the callout on screen -- \"Barkskin\" -- for whichever defensive ")
+          .. ns.L("it picked, and your fallback line when nothing is up. Only appears for ")
+          .. ns.L("abilities enabled in that boss's ability list, in the Bosses tab. Set each ")
+          .. ns.L("line's own wording in the list below."),
           getValue = function() return TRDB().showText end,
           setValue = function(v)
               TRDB().showText = v; ApplySize(); UpdatePreview()
@@ -7254,12 +7338,12 @@ function ns.BuildBarsSettings(parent, y)
     ); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "toggle", text = "Glow It on the Cooldown Manager",
-          tooltip = "Also glows the called defensive on Blizzard's Cooldown Manager bar, so "
-          .. "the answer appears on the bar you are already watching. Needs the Cooldown "
-          .. "Manager turned on and that defensive placed on it.|n|n"
-          .. "|cffff6b5eOff by default:|r this reaches across to Blizzard's own frames, so it "
-          .. "is the first thing to switch off if anything misbehaves in combat.",
+        { type = "toggle", text = ns.L("Glow It on the Cooldown Manager"),
+          tooltip = ns.L("Also glows the called defensive on Blizzard's Cooldown Manager bar, so ")
+          .. ns.L("the answer appears on the bar you are already watching. Needs the Cooldown ")
+          .. ns.L("Manager turned on and that defensive placed on it.|n|n")
+          .. ns.L("|cffff6b5eOff by default:|r this reaches across to Blizzard's own frames, so it ")
+          .. ns.L("is the first thing to switch off if anything misbehaves in combat."),
           getValue = function() return TRDB().cdmGlow == true end,
           setValue = function(v)
               TRDB().cdmGlow = v and true or false
@@ -7269,21 +7353,21 @@ function ns.BuildBarsSettings(parent, y)
     ); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "slider", text = "Icon Display Duration", min = 1, max = 15, step = 1,
-          tooltip = "How many seconds the defensive icon and callout text stay visible. "
-          .. "Defaults to 3 seconds. Hide After Casting can dismiss it early.",
+        { type = "slider", text = ns.L("Icon Display Duration"), min = 1, max = 15, step = 1,
+          tooltip = ns.L("How many seconds the defensive icon and callout text stay visible. ")
+          .. ns.L("Defaults to 3 seconds. Hide After Casting can dismiss it early."),
           getValue = function() return TRDB().lingerSec or DEFAULTS.lingerSec end,
           setValue = function(v) TRDB().lingerSec = v end },
-        { type = "toggle", text = "Hide After Casting",
-          tooltip = "Dismiss the icon and callout text when you cast the suggested defensive. "
-          .. "Off by default so they remain for the selected display duration.",
+        { type = "toggle", text = ns.L("Hide After Casting"),
+          tooltip = ns.L("Dismiss the icon and callout text when you cast the suggested defensive. ")
+          .. ns.L("Off by default so they remain for the selected display duration."),
           getValue = function() return TRDB().hideOnCast == true end,
           setValue = function(v) TRDB().hideOnCast = v and true or nil end }
     ); y = y - h
 
-    _, h = W:SectionHeader(parent, "SIZE AND LOCATION", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("SIZE AND LOCATION"), y); y = y - h
 
-    local fontValues, fontOrder = { [""] = "Default (Naowh)" }, { "" }
+    local fontValues, fontOrder = { [""] = ns.L("Default (Naowh)") }, { "" }
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     if LSM then
         for _, name in ipairs(LSM:List("font")) do
@@ -7293,13 +7377,13 @@ function ns.BuildBarsSettings(parent, y)
     end
     local selectedFont = TRDB().fontName
     if type(selectedFont) == "string" and selectedFont ~= "" and not fontValues[selectedFont] then
-        fontValues[selectedFont] = selectedFont .. " (unavailable)"
+        fontValues[selectedFont] = selectedFont .. ns.L(" (unavailable)")
         fontOrder[#fontOrder + 1] = selectedFont
     end
     _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Reminder Font", values = fontValues, order = fontOrder,
-          tooltip = "Font for defensive callouts and ability reminder text. Saved with this "
-          .. "profile. Unavailable fonts use the default font.",
+        { type = "dropdown", text = ns.L("Reminder Font"), values = fontValues, order = fontOrder,
+          tooltip = ns.L("Font for defensive callouts and ability reminder text. Saved with this ")
+          .. ns.L("profile. Unavailable fonts use the default font."),
           getValue = function() return TRDB().fontName or "" end,
           setValue = function(v)
               TRDB().fontName = v ~= "" and v or nil
@@ -7310,17 +7394,17 @@ function ns.BuildBarsSettings(parent, y)
     ); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "slider", text = "Icon Size", min = 32, max = 128, step = 1,
-          tooltip = "Size of the defensive icon. Independent of the text callout's size.",
+        { type = "slider", text = ns.L("Icon Size"), min = 32, max = 128, step = 1,
+          tooltip = ns.L("Size of the defensive icon. Independent of the text callout's size."),
           getValue = function() return TRDB().iconSize or DEFAULTS.iconSize end,
           setValue = function(v)
               TRDB().iconSize = v
               ApplySize()
               UpdatePreview()
           end },
-        { type = "slider", text = "Text Size", min = 10, max = 40, step = 1,
-          tooltip = "Size of the text callout -- the defensive name and fallback line. "
-          .. "Independent of the icon's size.",
+        { type = "slider", text = ns.L("Text Size"), min = 10, max = 40, step = 1,
+          tooltip = ns.L("Size of the text callout -- the defensive name and fallback line. ")
+          .. ns.L("Independent of the icon's size."),
           getValue = function() return TRDB().textSize or DEFAULTS.textSize end,
           setValue = function(v)
               TRDB().textSize = v
@@ -7330,24 +7414,24 @@ function ns.BuildBarsSettings(parent, y)
     ); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Text Position",
-          values = { TOP = "Above the Icon", BOTTOM = "Below the Icon",
-                     LEFT = "Left of the Icon", RIGHT = "Right of the Icon" },
+        { type = "dropdown", text = ns.L("Text Position"),
+          values = { TOP = ns.L("Above the Icon"), BOTTOM = ns.L("Below the Icon"),
+                     LEFT = ns.L("Left of the Icon"), RIGHT = ns.L("Right of the Icon") },
           order = { "TOP", "BOTTOM", "LEFT", "RIGHT" },
-          tooltip = "Which side of the icon the text callout sits on. The text is anchored "
-          .. "by its near edge, so it keeps the same gap from the icon however long the "
-          .. "defensive's name is.",
+          tooltip = ns.L("Which side of the icon the text callout sits on. The text is anchored ")
+          .. ns.L("by its near edge, so it keeps the same gap from the icon however long the ")
+          .. ns.L("defensive's name is."),
           getValue = function() return TRDB().textSide or DEFAULTS.textSide end,
           setValue = function(v)
               TRDB().textSide = v
               ApplyTextLayout()
               UpdatePreview()
           end },
-        { type = "toggle", text = "Show a Preview",
-          tooltip = "Puts a stand-in of the alert on screen while these options are open -- "
-          .. "the icon and the text callout exactly as a fight would draw them. DRAG IT to "
-          .. "move the alert; the position saves instantly. It hides itself when the "
-          .. "options close.",
+        { type = "toggle", text = ns.L("Show a Preview"),
+          tooltip = ns.L("Puts a stand-in of the alert on screen while these options are open -- ")
+          .. ns.L("the icon and the text callout exactly as a fight would draw them. DRAG IT to ")
+          .. ns.L("move the alert; the position saves instantly. It hides itself when the ")
+          .. ns.L("options close."),
           getValue = function() return previewPin end,
           setValue = function(v) previewPin = v; UpdatePreview() end }
     ); y = y - h
@@ -7365,7 +7449,7 @@ function ns.BuildBarsSettings(parent, y)
 
     if resetRow then
         if resetRow._leftRegion and not resetRow._resetIcon then
-            local btn = ns.Button(resetRow._leftRegion, "Reset Icon Position", 200, 26, function()
+            local btn = ns.Button(resetRow._leftRegion, ns.L("Reset Icon Position"), 200, 26, function()
                 TRDB().pos = nil
                 ApplyPosition()
             end)
@@ -7374,18 +7458,18 @@ function ns.BuildBarsSettings(parent, y)
         end
     end
 
-    _, h = W:SectionHeader(parent, "OPTIONS WINDOW", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("OPTIONS WINDOW"), y); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Window Scale",
-          values = { [100] = "100%  (default)", [90] = "90%", [80] = "80%",
+        { type = "dropdown", text = ns.L("Window Scale"),
+          values = { [100] = ns.L("100%  (default)"), [90] = "90%", [80] = "80%",
                      [70] = "70%", [60] = "60%", [50] = "50%" },
           order = { 100, 90, 80, 70, 60, 50 },
-          tooltip = "Size of this options window and the editors it opens, as a percentage. "
-          .. "Turn it down if the window is too big for your screen; 1080p usually wants 80 "
-          .. "or below.|n|nSaved for this computer instead of in the profile, so switching "
-          .. "profile leaves it alone and an exported pack never carries it to someone on a "
-          .. "different monitor.",
+          tooltip = ns.L("Size of this options window and the editors it opens, as a percentage. ")
+          .. ns.L("Turn it down if the window is too big for your screen; 1080p usually wants 80 ")
+          .. ns.L("or below.|n|nSaved for this computer instead of in the profile, so switching ")
+          .. ns.L("profile leaves it alone and an exported pack never carries it to someone on a ")
+          .. ns.L("different monitor."),
           getValue = function() return tonumber(ns.AccountSettings().windowScale) or 100 end,
           setValue = function(v) ns.SetWindowScale(v) end },
         { type = "label", text = "" }
@@ -7402,43 +7486,43 @@ function ns.BuildSoundsSettings(parent, y)
     local W   = EUI.Widgets
     local _, h
 
-    _, h = W:SectionHeader(parent, "SOUNDS AND VOICE", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("SOUNDS AND VOICE"), y); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "toggle", text = "Play a Sound",
-          tooltip = "Plays a sound when a tank ability is coming. The game plays this one itself, "
-          .. "which is the only way it can be limited to tank abilities -- but it also means the "
-          .. "sound cannot know whether your defensive is ready. Watch the icon for that.|n|n"
-          .. "|cffff6b5eIt plays at most ONCE per boss fight.|r The game will not repeat a "
-          .. "registered sound, so a second cast of the same ability is silent. The icon is "
-          .. "not affected and marks every cast.",
+        { type = "toggle", text = ns.L("Play a Sound"),
+          tooltip = ns.L("Plays a sound when a tank ability is coming. The game plays this one itself, ")
+          .. ns.L("which is the only way it can be limited to tank abilities -- but it also means the ")
+          .. ns.L("sound cannot know whether your defensive is ready. Watch the icon for that.|n|n")
+          .. ns.L("|cffff6b5eIt plays at most ONCE per boss fight.|r The game will not repeat a ")
+          .. ns.L("registered sound, so a second cast of the same ability is silent. The icon is ")
+          .. ns.L("not affected and marks every cast."),
           getValue = function() return TRDB().soundOn end,
           setValue = function(v)
               TRDB().soundOn = v
               RegisterEventSounds()
               EUI:RefreshPage(true)
           end },
-        { type = "toggle", text = "Speak Which Defensive to Use",
-          tooltip = "Says the callout for the defensive it picked, and your fallback line when "
-          .. "nothing is up. On bosses with tank buster data this speaks only for tank "
-          .. "busters; on bosses without it yet, it speaks for every timeline ability. In "
-          .. "combat the pick comes from the addon's own tracking of your casts.",
+        { type = "toggle", text = ns.L("Speak Which Defensive to Use"),
+          tooltip = ns.L("Says the callout for the defensive it picked, and your fallback line when ")
+          .. ns.L("nothing is up. On bosses with tank buster data this speaks only for tank ")
+          .. ns.L("busters; on bosses without it yet, it speaks for every timeline ability. In ")
+          .. ns.L("combat the pick comes from the addon's own tracking of your casts."),
           getValue = function() return TRDB().voiceOn end,
           setValue = function(v) TRDB().voiceOn = v; EUI:RefreshPage(true) end }
     ); y = y - h
 
     local voiceValues, voiceOrder = ns.TTSVoiceChoices()
     _, h = W:DualRow(parent, y,
-        { type = "slider", text = "Voice Volume", min = 0, max = 100, step = 5,
-          tooltip = "Volume of the spoken callouts.",
+        { type = "slider", text = ns.L("Voice Volume"), min = 0, max = 100, step = 5,
+          tooltip = ns.L("Volume of the spoken callouts."),
           getValue = function() return TRDB().voiceVol or 100 end,
           setValue = function(v) TRDB().voiceVol = v end },
-        { type = "dropdown", text = "Voice", width = 180,
+        { type = "dropdown", text = ns.L("Voice"), width = 180,
           values = voiceValues, order = voiceOrder,
-          tooltip = "Which text-to-speech voice speaks the callouts. Game Default follows "
-          .. "whatever is picked in the game's own Text to Speech options; anything else is "
-          .. "this addon's alone and does not change the game's setting. The list is the "
-          .. "voices your system has installed.",
+          tooltip = ns.L("Which text-to-speech voice speaks the callouts. Game Default follows ")
+          .. ns.L("whatever is picked in the game's own Text to Speech options; anything else is ")
+          .. ns.L("this addon's alone and does not change the game's setting. The list is the ")
+          .. ns.L("voices your system has installed."),
           getValue = function() return TRDB().ttsVoiceID or "" end,
           setValue = function(v)
               TRDB().ttsVoiceID = (v ~= "" and v) or nil
@@ -7449,17 +7533,17 @@ function ns.BuildSoundsSettings(parent, y)
         local paths, names, order = EUI.BuildAlertSoundTables()
         if EUI.AppendSharedMediaSounds then EUI.AppendSharedMediaSounds(paths, names, order) end
         _, h = W:DualRow(parent, y,
-            { type = "dropdown", text = "Alert Sound",
+            { type = "dropdown", text = ns.L("Alert Sound"),
               values = names, order = order,
-              tooltip = "Sound files only. A few entries are built-in game sounds rather than "
-              .. "files, and the game will not accept those for this.",
+              tooltip = ns.L("Sound files only. A few entries are built-in game sounds rather than ")
+              .. ns.L("files, and the game will not accept those for this."),
               getValue = function() return TRDB().soundKey or "none" end,
               setValue = function(v)
                   TRDB().soundKey = v
                   if EUI._PlayLSMSound and paths[v] then EUI._PlayLSMSound(paths[v]) end
                   RegisterEventSounds()
               end },
-            { type = "label", text = "Re-registers when you change it." }
+            { type = "label", text = ns.L("Re-registers when you change it.") }
         ); y = y - h
 
         if soundError then
@@ -7485,12 +7569,12 @@ function ns.BuildColorsSettings(parent, y)
     local W   = EUI.Widgets
     local _, h
 
-    _, h = W:SectionHeader(parent, "COLORS", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("COLORS"), y); y = y - h
 
     _, h = W:DualRow(parent, y,
-        { type = "toggle", text = "Color the Defensive Text",
-          tooltip = "Recolor the defensive callout text -- the spell name shown by the "
-          .. "icon. Off uses the default white.",
+        { type = "toggle", text = ns.L("Color the Defensive Text"),
+          tooltip = ns.L("Recolor the defensive callout text -- the spell name shown by the ")
+          .. ns.L("icon. Off uses the default white."),
           getValue = function() return TRDB().defensiveTextColorOn end,
           setValue = function(v)
               TRDB().defensiveTextColorOn = v
@@ -7503,7 +7587,7 @@ function ns.BuildColorsSettings(parent, y)
     -- One colour setting now that the authored line and the defensive callout share the
     -- same display; the second one coloured a frame that no longer exists.
     if TRDB().defensiveTextColorOn then
-        _, h = W:ColorPicker(parent, "Defensive Text Color", y,
+        _, h = W:ColorPicker(parent, ns.L("Defensive Text Color"), y,
             DefensiveTextColor,
             function(r, g, b, a)
                 TRDB().defensiveTextColor = { r = r, g = g, b = b, a = a }
@@ -7516,7 +7600,7 @@ function ns.BuildColorsSettings(parent, y)
 
     if not TRDB().defensiveTextColorOn then
         _, h = W:DualRow(parent, y,
-            { type = "label", text = "|cff9a9ea6Nothing else to configure here yet.|r" },
+            { type = "label", text = ns.L("|cff9a9ea6Nothing else to configure here yet.|r") },
             { type = "label", text = "" }
         ); y = y - h
     end
@@ -7590,7 +7674,7 @@ function ns.SetSpellOnList(forSpec, encounterID, spellID, on)
     if on then
         if at then return true end
         if #cur >= MAX_SLOTS then
-            ns.Print(("that list is full (%d maximum) -- switch one off first."):format(MAX_SLOTS))
+            ns.Print((ns.L("that list is full (%d maximum) -- switch one off first.")):format(MAX_SLOTS))
             return false
         end
         cur[#cur + 1] = spellID
@@ -7634,7 +7718,7 @@ end
 function ns.AddCustomSpell(forSpec, spellID)
     local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(spellID)
     if not info then
-        ns.Print(("no spell with ID %s."):format(tostring(spellID)))
+        ns.Print((ns.L("no spell with ID %s.")):format(tostring(spellID)))
         return false
     end
     local t = TRDB()
@@ -7642,7 +7726,7 @@ function ns.AddCustomSpell(forSpec, spellID)
     local key = tostring(forSpec or 0)
     if type(t.custom[key]) ~= "table" then t.custom[key] = {} end
     t.custom[key][tostring(spellID)] = true
-    ns.Print(("added %s (%d). Switch it on to put it in your priority."):format(
+    ns.Print((ns.L("added %s (%d). Switch it on to put it in your priority.")):format(
         info.name or "?", spellID))
     return true
 end
@@ -7854,7 +7938,7 @@ watcher:SetScript("OnEvent", function(self, event, arg1, arg2, arg3)
         end
         local okL, errL = pcall(OnCombatLog)
         if not okL then
-            ns.Print("|cffff6060combat log watch failed|r: " .. ErrText(errL))
+            ns.Print(ns.L("|cffff6060combat log watch failed|r: ") .. ErrText(errL))
         end
         return
     end
@@ -7956,25 +8040,25 @@ watcher:SetScript("OnEvent", function(self, event, arg1, arg2, arg3)
 
         if event == "ENCOUNTER_START" and TRDB().enabled == true then
             local why
-            if not canSelect then why = "this client lacks the cooldown API"
-            elseif not TimelineAvailable() then why = "the boss timeline feature is unavailable here"
-            elseif not BossAllowed() then why = "this boss is switched off in Smart Reminders"
+            if not canSelect then why = ns.L("this client lacks the cooldown API")
+            elseif not TimelineAvailable() then why = ns.L("the boss timeline feature is unavailable here")
+            elseif not BossAllowed() then why = ns.L("this boss is switched off in Smart Reminders")
             end
             if not why then
                 local t2 = TRDB()
                 if not (t2.showIcon or t2.showText or t2.voiceOn or t2.soundOn) then
-                    why = "icon, text, voice and sound are ALL switched off"
+                    why = ns.L("icon, text, voice and sound are ALL switched off")
                 elseif not (t2.showIcon or t2.showText or t2.voiceOn)
                     and not saidAudioOnly then
                     -- A reminder for a legitimate configuration, so once per session; the
                     -- true all-off state above stays per boss because it is always wrong.
                     saidAudioOnly = true
-                    why = "only Play a Sound is on: expect one beep per ability per pull, "
-                        .. "nothing else"
+                    why = ns.L("only Play a Sound is on: expect one beep per ability per pull, ")
+                        .. ns.L("nothing else")
                 end
             end
             if why then
-                ns.Print("|cffff6060not running this fight|r: " .. why)
+                ns.Print(ns.L("|cffff6060not running this fight|r: ") .. why)
             end
         end
 

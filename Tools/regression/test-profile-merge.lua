@@ -6,6 +6,7 @@ local root = arg[1] or "."
 local function Fixture()
     local e = { profiles = { Naowh = {}, Other = {} }, refreshed = 0 }
     local ns = {}
+    ns.L = function(key, ...) if select("#", ...) > 0 then return key:format(...) end return key end
     ns.ListProfiles = function()
         local out = {}
         for name in pairs(e.profiles) do out[#out + 1] = name end

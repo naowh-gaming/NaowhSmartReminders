@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Russian translation. With the game client set to Russian, the options window, callouts and
+  messages are shown in Russian.
+- Call Together now shows every ready ability in the group side by side instead of only the
+  first one, with one shared callout line under the row. With Hide After Casting on, each
+  icon dims as you press it and the row goes away once all of them are pressed.
+
 ## 1.4.27
 
 ### Added

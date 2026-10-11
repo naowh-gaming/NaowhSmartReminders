@@ -41,7 +41,7 @@ function methods:GetText() return self.text end
 function methods:CreateFontString() return Object(self) end
 function methods:CreateTexture() return Object(self) end
 
-local env = { STANDARD_TEXT_FONT = "font", LibStub = false,
+local env = { STANDARD_TEXT_FONT = "font", LibStub = false, GetLocale = function() return "enUS" end,
     CreateFrame = function(_, _, parent) return Object(parent) end }
 env._G = env
 setmetatable(env, { __index = _G })

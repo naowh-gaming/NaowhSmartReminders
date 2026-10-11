@@ -21,7 +21,7 @@ function ns.BuildCustomRemindersPage(parent, yOffset)
 
     local pageHead = ns.Font(parent, 14, nil, ns.THEME.accent)
     pageHead:SetPoint("TOP", parent, "TOP", 0, y)
-    pageHead:SetText("ABILITY REMINDERS")
+    pageHead:SetText(ns.L("ABILITY REMINDERS"))
     y = y - 24
 
     local hint = ns.Font(parent, 11, nil, ns.THEME.muted)
@@ -29,25 +29,25 @@ function ns.BuildCustomRemindersPage(parent, yOffset)
     hint:SetPoint("RIGHT", parent, "RIGHT", -PADX, 0)
     hint:SetJustifyH("LEFT")
     hint:SetWordWrap(true)
-    hint:SetText("Every reminder for the selected boss in one place. Phase Start "
-        .. "triggers need BigWigs or DBM and only fire on bosses whose module "
-        .. "announces phases. Any Combat, at the end of the Instance list, is for "
-        .. "reminders that count from entering combat instead of from a boss, so they "
-        .. "work on trash and out in the world too.")
+    hint:SetText(ns.L("Every reminder for the selected boss in one place. Phase Start ")
+        .. ns.L("triggers need BigWigs or DBM and only fire on bosses whose module ")
+        .. ns.L("announces phases. Any Combat, at the end of the Instance list, is for ")
+        .. ns.L("reminders that count from entering combat instead of from a boss, so they ")
+        .. ns.L("work on trash and out in the world too."))
     y = y - 36
 
     -- The five reminder anchors are profile-wide rather than per boss, so this sits above
     -- the boss list and before the journal check -- it stays reachable even on the first
     -- open, when the Dungeon Journal has not answered yet.
     if ns.ShowRaidReminderAnchorConfig then
-        local anchorBtn = ns.Button(parent, "Customize Anchors", 200, 26, function()
+        local anchorBtn = ns.Button(parent, ns.L("Customize Anchors"), 200, 26, function()
             ns.ShowRaidReminderAnchorConfig()
         end)
         anchorBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", PADX, y)
-        ns.Tooltip(anchorBtn, "Customize Anchors",
-            "Place and size each reminder display -- Message, Timer, Icon, Bar and Circle. "
-            .. "An alignment grid appears while you are in there. This window steps aside "
-            .. "and comes back when you press Exit Config.")
+        ns.Tooltip(anchorBtn, ns.L("Customize Anchors"),
+            ns.L("Place and size each reminder display -- Message, Timer, Icon, Bar and Circle. ")
+            .. ns.L("An alignment grid appears while you are in there. This window steps aside ")
+            .. ns.L("and comes back when you press Exit Config."))
         y = y - 36
     end
 
@@ -55,7 +55,7 @@ function ns.BuildCustomRemindersPage(parent, yOffset)
     if not (data and data.instances and #data.instances > 0) then
         local wait = ns.Font(parent, 12, nil, ns.THEME.muted)
         wait:SetPoint("TOPLEFT", parent, "TOPLEFT", PADX, y)
-        wait:SetText("The Dungeon Journal has not answered yet -- reopen this tab in a moment.")
+        wait:SetText(ns.L("The Dungeon Journal has not answered yet -- reopen this tab in a moment."))
         return y - 24
     end
 
@@ -93,12 +93,12 @@ function ns.BuildCustomRemindersPage(parent, yOffset)
         local extraBosses = {}
         for encStr in pairs(extras) do
             extraBosses[#extraBosses + 1] =
-                { name = "Encounter " .. encStr, encounterID = tonumber(encStr) }
+                { name = ns.L("Encounter ") .. encStr, encounterID = tonumber(encStr) }
         end
         table.sort(extraBosses, function(a, b) return a.encounterID < b.encounterID end)
         if #extraBosses > 0 then
             instList[#instList + 1] =
-                { id = "savedOnly", name = "Saved (not in journal)", bosses = extraBosses }
+                { id = "savedOnly", name = ns.L("Saved (not in journal)"), bosses = extraBosses }
         end
     end
 
@@ -114,14 +114,14 @@ function ns.BuildCustomRemindersPage(parent, yOffset)
     for i = 1, #inst.bosses do bossValues[i] = inst.bosses[i].name; bossOrder[i] = i end
 
     local _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Instance", width = 220,
+        { type = "dropdown", text = ns.L("Instance"), width = 220,
           values = instValues, order = instOrder,
           getValue = function() return selInstIdx end,
           setValue = function(v)
               selInstIdx = v
               EUI:RefreshPage(true)
           end },
-        { type = "dropdown", text = "Boss", width = 220,
+        { type = "dropdown", text = ns.L("Boss"), width = 220,
           values = bossValues, order = bossOrder,
           getValue = function() return bIdx end,
           setValue = function(v)
@@ -142,7 +142,7 @@ function ns.BuildCustomRemindersPage(parent, yOffset)
     if not okSec then
         local errText = ns.Font(listBox, 11, nil, { r = 1, g = 0.35, b = 0.35 })
         errText:SetPoint("TOPLEFT", listBox, "TOPLEFT", 0, 0)
-        errText:SetText("Failed to build the reminder lists: " .. tostring(usedY))
+        errText:SetText(ns.L("Failed to build the reminder lists: ") .. tostring(usedY))
         usedY = -24
     end
     listBox:SetHeight(math.abs(usedY) + 4)

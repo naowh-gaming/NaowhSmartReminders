@@ -5,6 +5,7 @@ local function Fixture()
         cooldown = { isActive = false, isEnabled = true }, restrictions = {} }
     local db = { enabled = true, integrationRules = { ["250"] = {} } }
     local ns = { UI = {}, trackedReminderTimers = {} }
+    ns.L = function(key, ...) if select("#", ...) > 0 then return key:format(...) end return key end
     ns.DB = function() return db end
     ns.IsReminderEnabled = function(r) return r.enabled ~= false and not (e.healerOff and r.healerReminder) end
     ns.DisplayRaidReminder = function(r) e.shown[#e.shown + 1] = r end
@@ -186,6 +187,8 @@ Case("preset and custom-text previews use addon voice volume, with silence diagn
     end
     e.env.ApplyPriorityAlpha = function() end
     e.env.ClearTankGate = function() end
+    e.env.ApplySize = function() end
+    e.ns.ShowCalloutSet = function() end
     e.env.HideReminder = function() alert.hidden = true end
     e.env.textFrame = { Show = function() alert.textShown = true end,
         SetFrameStrata = function(_, v) alert.textStrata = v end }

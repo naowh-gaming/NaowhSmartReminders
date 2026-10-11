@@ -469,7 +469,7 @@ local function BigWigsAbilities(encounterID, journalAbilities, mapID)
             desc = C_Spell.GetSpellDescription(id)
         end
         list[#list + 1] = {
-            title       = (j and j.title) or name or ("Spell " .. id),
+            title       = (j and j.title) or name or (ns.L("Spell ") .. id),
             spellID     = id,
             icon        = (j and j.icon) or (info and info.iconID),
             extras      = j and j.extras,
@@ -532,9 +532,9 @@ local function AttachRemove(row, entry, specID, EUI, onGone)
         a:SetColorTexture(1, 0.35, 0.35, 1); b:SetColorTexture(1, 0.35, 0.35, 1)
         local EUIg = ns.UI
         if EUIg and EUIg.ShowWidgetTooltip then
-            EUIg.ShowWidgetTooltip(btn, "Remove",
-                entry.userAdded and "Deletes this spell you added."
-                or "Takes this out of your choices. Restore them with the button at the bottom.")
+            EUIg.ShowWidgetTooltip(btn, ns.L("Remove"),
+                entry.userAdded and ns.L("Deletes this spell you added.")
+                or ns.L("Takes this out of your choices. Restore them with the button at the bottom."))
         end
     end)
     btn:SetScript("OnLeave", function()
@@ -582,8 +582,8 @@ local function AttachGrabber(row, spellID, index, specID, encounterID, EUI)
             EUI:RefreshPage(true)
         end
     end)
-    ns.Tooltip(grab, "Drag to reorder", "Drag this onto another enabled ability to change the "
-        .. "order it is called out in.")
+    ns.Tooltip(grab, ns.L("Drag to reorder"), ns.L("Drag this onto another enabled ability to change the ")
+        .. ns.L("order it is called out in."))
     return grab
 end
 
@@ -656,9 +656,9 @@ local function ShowNamePrompt(title, confirmLabel, initial, onCommit)
         box:SetScript("OnEnterPressed", Commit)
         box:SetScript("OnEscapePressed", function(self) self:ClearFocus(); dimmer:Hide() end)
 
-        np.confirm = ns.Button(panel, "Save", 90, 26, Commit)
+        np.confirm = ns.Button(panel, ns.L("Save"), 90, 26, Commit)
         np.confirm:SetPoint("BOTTOM", panel, "BOTTOM", -50, 16)
-        ns.Button(panel, "Cancel", 90, 26, function() dimmer:Hide() end)
+        ns.Button(panel, ns.L("Cancel"), 90, 26, function() dimmer:Hide() end)
             :SetPoint("BOTTOM", panel, "BOTTOM", 50, 16)
 
         namePrompt = np
@@ -675,14 +675,14 @@ local function ShowNamePrompt(title, confirmLabel, initial, onCommit)
 end
 
 local function ShowAddPresetPopup(specID, EUI)
-    ShowNamePrompt("New Preset", "Create", ns.NextPresetName(specID), function(text)
+    ShowNamePrompt(ns.L("New Preset"), ns.L("Create"), ns.NextPresetName(specID), function(text)
         ns.AddPreset(specID, text)
         EUI:RefreshPage(true)
     end)
 end
 
 local function ShowRenamePresetPopup(specID, presetKey, currentName, EUI)
-    ShowNamePrompt("Rename Preset", "Save", currentName or "", function(text)
+    ShowNamePrompt(ns.L("Rename Preset"), ns.L("Save"), currentName or "", function(text)
         ns.RenamePreset(specID, presetKey, text)
         EUI:RefreshPage(true)
     end)
@@ -702,10 +702,10 @@ local function ShowAbilitySettingsPopup(specID, spellID, name, EUI)
     local editBtn, placeClose
     local y = -46
     local _, h = W:DualRow(panel, y,
-        { type = "toggle", text = "Audio",
-          tooltip = "Speaks this one when it is the defensive to press. Switch it off to "
-          .. "keep it in your priority order but stay silent for it -- the icon and text "
-          .. "still show.",
+        { type = "toggle", text = ns.L("Audio"),
+          tooltip = ns.L("Speaks this one when it is the defensive to press. Switch it off to ")
+          .. ns.L("keep it in your priority order but stay silent for it -- the icon and text ")
+          .. ns.L("still show."),
           getValue = function() return not ns.IsAudioOff(spellID) end,
           setValue = function(v)
               ns.SetAudioOff(spellID, not v)
@@ -715,11 +715,11 @@ local function ShowAbilitySettingsPopup(specID, spellID, name, EUI)
     ); y = y - h
 
     _, h = W:DualRow(panel, y,
-        { type = "toggle", text = "Call Together",
-          tooltip = "Tick this on every cooldown that should be called as a set. When one "
-          .. "of them comes up, the rest that are ready are named with it -- \"Vampiric "
-          .. "Blood and Icebound Fortitude\". Order does not matter, and one on cooldown "
-          .. "is simply left out rather than holding the callout back.",
+        { type = "toggle", text = ns.L("Call Together"),
+          tooltip = ns.L("Tick this on every cooldown that should be called as a set. When one ")
+          .. ns.L("of them comes up, the rest that are ready are named with it -- \"Vampiric ")
+          .. ns.L("Blood and Icebound Fortitude\". Order does not matter, and one on cooldown ")
+          .. ns.L("is simply left out rather than holding the callout back."),
           getValue = function() return ns.CalledTogether(specID, spellID) end,
           setValue = function(v)
               ns.SetCalledTogether(specID, spellID, v)
@@ -727,8 +727,8 @@ local function ShowAbilitySettingsPopup(specID, spellID, name, EUI)
           end }
     ); y = y - h
 
-    editBtn = ns.Button(panel, "Edit Callout", 120, 26, function()
-        ns.ShowCalloutEditor(("Audio callout for %s"):format(name),
+    editBtn = ns.Button(panel, ns.L("Edit Callout"), 120, 26, function()
+        ns.ShowCalloutEditor((ns.L("Audio callout for %s")):format(name),
             ns.CalloutFor(spellID, name), function(text)
                 ns.SetCallout(spellID, text)
                 if EUI.RefreshPage then EUI:RefreshPage(true) end
@@ -737,7 +737,7 @@ local function ShowAbilitySettingsPopup(specID, spellID, name, EUI)
     editBtn:SetPoint("BOTTOM", panel, "BOTTOM", -55, 16)
     editBtn:SetShown(not ns.IsAudioOff(spellID))
 
-    local closeBtn = ns.Button(panel, "Close", 90, 26, function() dimmer:Hide() end)
+    local closeBtn = ns.Button(panel, ns.L("Close"), 90, 26, function() dimmer:Hide() end)
     placeClose = function()
         closeBtn:ClearAllPoints()
         closeBtn:SetPoint("BOTTOM", panel, "BOTTOM", editBtn:IsShown() and 65 or 0, 16)
@@ -757,27 +757,27 @@ local function ShowSetSettingsPopup(specID, members, EUI)
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText("Called Together")
+    head:SetText(ns.L("Called Together"))
 
     local y = -44
     for i = 1, #members do
         local sid = members[i]
         local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
-        local nm = (info and info.name) or ("Spell " .. sid)
+        local nm = (info and info.name) or (ns.L("Spell ") .. sid)
         local btn = ns.Button(panel, ns.CalloutFor(sid, nm), 340, 26, function()
             dimmer:Hide()
             ShowAbilitySettingsPopup(specID, sid, nm, EUI)
         end)
         btn:SetPoint("TOP", panel, "TOP", 0, y)
-        ns.Tooltip(btn, nm, "Its audio, what it is called out loud, and taking it back "
-            .. "out of the set.")
+        ns.Tooltip(btn, nm, ns.L("Its audio, what it is called out loud, and taking it back ")
+            .. ns.L("out of the set."))
         y = y - 32
     end
 
     -- 26 for the button row, 16 for the bottom inset, and a gap so they do not touch.
     panel:SetHeight(math.abs(y) + 58)
 
-    ns.Button(panel, "Close", 90, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Close"), 90, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 0, 16)
 
     dimmer:Show()
@@ -793,16 +793,16 @@ local function ShowFallbackSettingsPopup(EUI)
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText("Call for an External")
+    head:SetText(ns.L("Call for an External"))
 
     local editBtn, placeClose
     local y = -46
     local _, h = W:DualRow(panel, y,
-        { type = "toggle", text = "Audio",
-          tooltip = "Speaks the fallback line when nothing on your list is up. This step is "
-          .. "always last and cannot be moved, but it can be silenced.",
+        { type = "toggle", text = ns.L("Audio"),
+          tooltip = ns.L("Speaks the fallback line when nothing on your list is up. This step is ")
+          .. ns.L("always last and cannot be moved, but it can be silenced."),
           disabled = function() return db.fallbackOn == false end,
-          disabledTooltip = "Switch the last step back on to use this.",
+          disabledTooltip = ns.L("Switch the last step back on to use this."),
           getValue = function() return db.fallbackOn ~= false and not ns.IsAudioOff(0) end,
           setValue = function(v)
               if db.fallbackOn == false then return end
@@ -813,12 +813,12 @@ local function ShowFallbackSettingsPopup(EUI)
     ); y = y - h
 
     _, h = W:DualRow(panel, y,
-        { type = "toggle", text = "Announce in Chat",
-          tooltip = "Sends |cff0091edEXTERNAL!|r to party, raid or instance chat when nothing on "
-          .. "your list is up, so whoever is watching for it can react. Group chat only, and at "
-          .. "most once every three seconds however many telegraphs land together.",
+        { type = "toggle", text = ns.L("Announce in Chat"),
+          tooltip = ns.L("Sends |cff0091edEXTERNAL!|r to party, raid or instance chat when nothing on ")
+          .. ns.L("your list is up, so whoever is watching for it can react. Group chat only, and at ")
+          .. ns.L("most once every three seconds however many telegraphs land together."),
           disabled = function() return db.fallbackOn == false end,
-          disabledTooltip = "Switch the last step back on to use this.",
+          disabledTooltip = ns.L("Switch the last step back on to use this."),
           getValue = function() return db.externalChat == true end,
           setValue = function(v)
               if db.fallbackOn == false then return end
@@ -826,8 +826,8 @@ local function ShowFallbackSettingsPopup(EUI)
           end }
     ); y = y - h
 
-    editBtn = ns.Button(panel, "Edit Callout", 120, 26, function()
-        ns.ShowCalloutEditor("Said and shown when nothing on the list is up",
+    editBtn = ns.Button(panel, ns.L("Edit Callout"), 120, 26, function()
+        ns.ShowCalloutEditor(ns.L("Said and shown when nothing on the list is up"),
             db.voiceNone, function(v)
                 db.voiceNone = v
                 ns.RefreshRuntime()
@@ -836,7 +836,7 @@ local function ShowFallbackSettingsPopup(EUI)
     editBtn:SetPoint("BOTTOM", panel, "BOTTOM", -55, 16)
     editBtn:SetShown(db.fallbackOn ~= false and not ns.IsAudioOff(0))
 
-    local closeBtn = ns.Button(panel, "Close", 90, 26, function() dimmer:Hide() end)
+    local closeBtn = ns.Button(panel, ns.L("Close"), 90, 26, function() dimmer:Hide() end)
     placeClose = function()
         closeBtn:ClearAllPoints()
         closeBtn:SetPoint("BOTTOM", panel, "BOTTOM", editBtn:IsShown() and 65 or 0, 16)
@@ -864,7 +864,7 @@ local function BuildPresetRow(leftPane, ly, rowW, rowH, specID, p, isActive, can
     lbl:SetPoint("RIGHT", prow, "RIGHT", canDelete and -56 or -34, 0)
     lbl:SetJustifyH("LEFT")
     lbl:SetWordWrap(false)
-    lbl:SetText(p.name)
+    lbl:SetText(p.name == "Default" and ns.L(p.name) or p.name)
 
     prow:SetScript("OnClick", function()
         ns.SelectPreset(specID, p.key)
@@ -872,7 +872,7 @@ local function BuildPresetRow(leftPane, ly, rowW, rowH, specID, p, isActive, can
     end)
 
     local edit = ns.Font(prow, 11, nil, ns.THEME.muted)
-    edit:SetText("Edit")
+    edit:SetText(ns.L("Edit"))
     local editHit = CreateFrame("Button", nil, prow)
     editHit:SetSize(28, rowH)
     if canDelete then
@@ -886,7 +886,7 @@ local function BuildPresetRow(leftPane, ly, rowW, rowH, specID, p, isActive, can
         edit:SetTextColor(c.r, c.g, c.b, 1)
         local EUIg = ns.UI
         if EUIg and EUIg.ShowWidgetTooltip then
-            EUIg.ShowWidgetTooltip(self, "Rename this preset.")
+            EUIg.ShowWidgetTooltip(self, ns.L("Rename this preset."))
         end
     end)
     editHit:SetScript("OnLeave", function()
@@ -910,7 +910,7 @@ local function BuildPresetRow(leftPane, ly, rowW, rowH, specID, p, isActive, can
             local EUIg = ns.UI
             if EUIg and EUIg.ShowWidgetTooltip then
                 EUIg.ShowWidgetTooltip(self,
-                    "|cff0091edDelete Preset|r\nRemoves this preset and its list. Cannot be undone.")
+                    ns.L("|cff0091edDelete Preset|r\nRemoves this preset and its list. Cannot be undone."))
             end
         end)
         del:SetScript("OnLeave", function()
@@ -970,7 +970,7 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
     addRow:SetPoint("TOPLEFT", leftPane, "TOPLEFT", 0, ly)
     local addLbl = ns.Font(addRow, 13, nil, ns.THEME.muted)
     addLbl:SetPoint("LEFT", addRow, "LEFT", 8, 0)
-    addLbl:SetText("+ Add Preset")
+    addLbl:SetText(ns.L("+ Add Preset"))
     addRow:SetScript("OnEnter", function()
         local c = ns.THEME.fg
         addLbl:SetTextColor(c.r, c.g, c.b, 1)
@@ -1007,7 +1007,7 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
                 seen[sid] = true
                 local si = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
                 pool[#pool + 1] = {
-                    id = sid, name = (si and si.name) or ("Spell " .. sid),
+                    id = sid, name = (si and si.name) or (ns.L("Spell ") .. sid),
                     icon = si and si.iconID, cd = 0, userAdded = true,
                 }
             end
@@ -1038,7 +1038,7 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
         local spellID = list[i]
         local idx = i
         local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(spellID)
-        local name = (info and info.name) or ("Spell " .. spellID)
+        local name = (info and info.name) or (ns.L("Spell ") .. spellID)
         local inSet = setMembers and ns.CalledTogether(specID, spellID)
             and ns.IsSpellAvailable(spellID)
         local skip = inSet and setDrawn
@@ -1052,21 +1052,21 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
                     local mi = C_Spell and C_Spell.GetSpellInfo
                         and C_Spell.GetSpellInfo(setMembers[m])
                     local one = ns.CalloutFor(setMembers[m], mi and mi.name)
-                    said = said and (said .. " and " .. one) or one
+                    said = said and (said .. ns.L(" and ") .. one) or one
                 end
                 label = ("      %d.  %s"):format(idx, said)
             else
                 label = ("      %d.  %s"):format(idx, name)
                 if not ns.IsSpellAvailable(spellID) then
-                    label = label .. "  (not talented)"
+                    label = label .. ns.L("  (not talented)")
                 end
             end
 
             row, h = W:DualRow(rightPane, ry,
                 { type = "toggle", text = label,
                   tooltip = inSet
-                      and "Called as one. Open the cog to rename either half or take one out."
-                      or ("Spell ID %d. Untick to drop it to the bottom of the list."):format(spellID),
+                      and ns.L("Called as one. Open the cog to rename either half or take one out.")
+                      or (ns.L("Spell ID %d. Untick to drop it to the bottom of the list.")):format(spellID),
                   getValue = function() return true end,
                   -- The whole set leaves together: it is drawn as one entry, so dropping it
                   -- has to take every member with it or the other half reappears on its own
@@ -1102,8 +1102,8 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
                     else
                         ShowAbilitySettingsPopup(specID, spellID, name, EUI)
                     end
-                end, "Settings", inSet and "What each half is called, and leaving the set."
-                    or "Audio, and anything added later.")
+                end, ns.L("Settings"), inSet and ns.L("What each half is called, and leaving the set.")
+                    or ns.L("Audio, and anything added later."))
             end
         end
     end
@@ -1118,8 +1118,8 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
         local c = spare[i]
         row, h = W:DualRow(rightPane, ry,
             { type = "toggle",
-              text = "      |cff9a9ea6" .. c.name .. (c.userAdded and " (added by you)" or "") .. "|r",
-              tooltip = ("Spell ID %d. Tick to put it into your priority order."):format(c.id),
+              text = "      |cff9a9ea6" .. c.name .. (c.userAdded and ns.L(" (added by you)") or "") .. "|r",
+              tooltip = (ns.L("Spell ID %d. Tick to put it into your priority order.")):format(c.id),
               getValue = function() return false end,
               setValue = function()
                   ns.SetSpellOnList(specID, nil, c.id, true)
@@ -1138,14 +1138,14 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
 
     if #list == 0 and #spare == 0 then
         _, h = W:DualRow(rightPane, ry,
-            { type = "label", text = "      No major defensives found for this specialization." }
+            { type = "label", text = ns.L("      No major defensives found for this specialization.") }
         ); ry = ry - h
     end
 
     if hidden and next(hidden) ~= nil then
         _, h = W:DualRow(rightPane, ry,
-            { type = "toggle", text = "      Restore Removed Abilities",
-              tooltip = "Brings back everything you removed from the choices for this spec.",
+            { type = "toggle", text = ns.L("      Restore Removed Abilities"),
+              tooltip = ns.L("Brings back everything you removed from the choices for this spec."),
               getValue = function() return false end,
               setValue = function()
                   ns.UnhideAll(specID)
@@ -1159,11 +1159,11 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
     local db = ns.DB()
     row, h = W:DualRow(rightPane, ry,
         { type = "toggle",
-          text = ("      |cff0091edLast:  %s|r"):format(db.voiceNone or "Call for an External"),
-          tooltip = "The final step, used when nothing on your list is up. Switch it off to say "
-          .. "and show nothing at all in that case.\n\nThis is the default for the whole spec. "
-          .. "An individual ability can override it from its own cog on a boss page, for hits "
-          .. "the raid was never going to answer.",
+          text = (ns.L("      |cff0091edLast:  %s|r")):format(ns.L(db.voiceNone or ns.L("Call for an External"))),
+          tooltip = ns.L("The final step, used when nothing on your list is up. Switch it off to say ")
+          .. ns.L("and show nothing at all in that case.\n\nThis is the default for the whole spec. ")
+          .. ns.L("An individual ability can override it from its own cog on a boss page, for hits ")
+          .. ns.L("the raid was never going to answer."),
           getValue = function() return db.fallbackOn ~= false end,
           setValue = function(v)
               db.fallbackOn = v
@@ -1173,20 +1173,20 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
     ); ry = ry - h
     if row then
         AttachRowCog(row._leftRegion, function() ShowFallbackSettingsPopup(EUI) end,
-            "Settings", "Audio, and anything added later.")
+            ns.L("Settings"), ns.L("Audio, and anything added later."))
     end
 
     -- The spell ID entry, last: the widget factory has no text input, so the box and its
     -- button are built here and laid over the row's right half.
     row, h = W:DualRow(rightPane, ry,
-        { type = "label", text = "      Add an Ability by Spell ID" },
+        { type = "label", text = ns.L("      Add an Ability by Spell ID") },
         { type = "label", text = "" }   -- overlaid below with the entry box and Add button
     ); ry = ry - h
 
     if row and row._rightRegion then
         local rgn = row._rightRegion
 
-        local add = ns.Button(rgn, "Add", 54, 22, nil)
+        local add = ns.Button(rgn, ns.L("Add"), 54, 22, nil)
         add:SetPoint("RIGHT", rgn, "RIGHT", -14, 0)
 
         local box = CreateFrame("EditBox", nil, rgn)
@@ -1204,7 +1204,7 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
 
         local placeholder = ns.Font(box, 12, nil, ns.THEME.muted)
         placeholder:SetPoint("LEFT", box, "LEFT", 8, 0)
-        placeholder:SetText("Enter SpellID")
+        placeholder:SetText(ns.L("Enter SpellID"))
 
         local feedback = ns.Font(rgn, 10, nil, ns.THEME.muted)
         feedback:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 2, -1)
@@ -1233,7 +1233,7 @@ function ns.RenderPresetListEditor(parent, y, W, EUI, specID)
             else
                 add:Disable()
                 add:SetAlpha(0.35)
-                feedback:SetText((text ~= "" and text ~= nil) and "|cffff6060Not a spell ID|r" or "")
+                feedback:SetText((text ~= "" and text ~= nil) and ns.L("|cffff6060Not a spell ID|r") or "")
             end
         end
 
@@ -1265,9 +1265,9 @@ local function RenderBossHeader(parent, y, W, EUI, encounterID, specID)
             presetOrder[i] = presets[i].key
         end
         _, h = W:DualRow(parent, y,
-            { type = "dropdown", text = "Cooldown Preset",
+            { type = "dropdown", text = ns.L("Cooldown Preset"),
               values = presetValues, order = presetOrder,
-              tooltip = "Which of your spec's presets this boss calls its defensives from.",
+              tooltip = ns.L("Which of your spec's presets this boss calls its defensives from."),
               getValue = function()
                   return ns.BossPresetKey(specID, encounterID) or ns.ActivePresetKey(specID)
               end,
@@ -1285,17 +1285,17 @@ end
 -------------------------------------------------------------------------------
 --  Custom reminder editor: name, message, trigger, linger
 -------------------------------------------------------------------------------
-local TRIGGER_CHOICES = { bwmsg = "BigWigs Message Timer",
-    caststart = "Boss Cast Starts", castend = "Boss Cast Finishes" }
+local TRIGGER_CHOICES = { bwmsg = ns.L("BigWigs Message Timer"),
+    caststart = ns.L("Boss Cast Starts"), castend = ns.L("Boss Cast Finishes") }
 local TRIGGER_ORDER = { "bwmsg", "caststart", "castend" }
 
-local SHOW_IN_TIP = "Seconds after the trigger. Blank or zero fires immediately. "
-    .. "For messages, the delay starts only when BigWigs/DBM sends the message. "
-    .. "Enable Messages for this ability in BigWigs; disabled messages cannot trigger reminders."
-local COUNTER_TIP = "Blank fires every time. Match a count with >N, >=N, <N, <=N, !N (not "
-    .. "N) or a bare number (exactly N). Separate conditions with a comma to match any of "
-    .. "them, or add a leading + on the second one to require both -- example: >3,+<7 "
-    .. "fires between 4 and 6."
+local SHOW_IN_TIP = ns.L("Seconds after the trigger. Blank or zero fires immediately. ")
+    .. ns.L("For messages, the delay starts only when BigWigs/DBM sends the message. ")
+    .. ns.L("Enable Messages for this ability in BigWigs; disabled messages cannot trigger reminders.")
+local COUNTER_TIP = ns.L("Blank fires every time. Match a count with >N, >=N, <N, <=N, !N (not ")
+    .. ns.L("N) or a bare number (exactly N). Separate conditions with a comma to match any of ")
+    .. ns.L("them, or add a leading + on the second one to require both -- example: >3,+<7 ")
+    .. ns.L("fires between 4 and 6.")
 
 -- Rebuilt fresh on every open: an occasional settings dialog is not worth the bookkeeping
 -- a cached singleton would need for a dropdown and text fields that all close over a
@@ -1326,7 +1326,7 @@ local function ResolveMechanicName(key, entry)
     -- (a negative journal key, or an arbitrary internal id some modules use), and that
     -- text is still the clearest label available for it.
     if type(entry.text) == "string" and entry.text ~= "" then return entry.text end
-    return "Key " .. tostring(key)
+    return ns.L("Key ") .. tostring(key)
 end
 
 -- List only the selected boss's BigWigs options, without a row cap.
@@ -1365,7 +1365,7 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText(uid and "Edit Reminder" or "New Reminder")
+    head:SetText(uid and ns.L("Edit Reminder") or ns.L("New Reminder"))
 
     local set = ns.CustomRemindersTable(false, encounterID)
     local existing = (set and uid) and set[uid] or nil
@@ -1423,7 +1423,7 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
         return box
     end
 
-    AddLabelM("Name")
+    AddLabelM(ns.L("Name"))
     local nameBox = AddBoxM(40)
     nameBox:SetText((existing and existing.name) or "")
 
@@ -1446,27 +1446,27 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
         or presetOrder[1]
 
     local _, presetRowH = W:DualRow(messageBody, my,
-        { type = "dropdown", text = "Preset Group",
+        { type = "dropdown", text = ns.L("Preset Group"),
           values = presetValues, order = presetOrder,
-          tooltip = "Which of your spec's presets this reminder calls from. When it fires "
-              .. "it names the highest defensive on that list still off cooldown.",
+          tooltip = ns.L("Which of your spec's presets this reminder calls from. When it fires ")
+              .. ns.L("it names the highest defensive on that list still off cooldown."),
           getValue = function() return presetVal end,
           setValue = function(v) presetVal = v end },
         { type = "label", text = "" }
     ); my = my - presetRowH
 
-    AddLabelM("Linger (seconds)")
+    AddLabelM(ns.L("Linger (seconds)"))
     local durBox = AddBoxM(3, true)
     durBox:SetText(tostring((existing and existing.dur) or 3))
 
     local healerVal = existing and existing.healerReminder == true or false
     local enabledVal = (existing == nil) or existing.enabled ~= false
     W:DualRow(messageBody, my,
-        { type = "toggle", text = "Enabled",
+        { type = "toggle", text = ns.L("Enabled"),
           getValue = function() return enabledVal end,
           setValue = function(v) enabledVal = v end },
-        { type = "toggle", text = "Healer Reminder",
-          tooltip = "Mark this reminder so players can opt out with Enable Healer Reminders in Setup.",
+        { type = "toggle", text = ns.L("Healer Reminder"),
+          tooltip = ns.L("Mark this reminder so players can opt out with Enable Healer Reminders in Setup."),
           getValue = function() return healerVal end,
           setValue = function(v) healerVal = v end }
     )
@@ -1509,10 +1509,10 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
 
     local triggerRowH
     triggerRow, triggerRowH = W:DualRow(triggerBody, 0,
-        { type = "dropdown", text = "Trigger",
+        { type = "dropdown", text = ns.L("Trigger"),
           values = TRIGGER_CHOICES,
           order = TRIGGER_ORDER,
-          tooltip = "What starts this reminder.",
+          tooltip = ns.L("What starts this reminder."),
           getValue = function() return trigVal end,
           setValue = function(v)
               SaveDynFieldsToText()
@@ -1588,7 +1588,7 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
             row:SetPoint("TOPLEFT", pickerContent, "TOPLEFT", 0, -(i - 1) * PICKER_ROW_H)
             row.icon:SetTexture(ResolveMechanicIcon(item.key))
             row.name:SetText(ResolveMechanicName(item.key, item.entry))
-            row.tag:SetText(item.entry.mod or "Journal")
+            row.tag:SetText(item.entry.mod or ns.L("Journal"))
             row:SetScript("OnClick", function()
                 SaveDynFieldsToText()
                 spellIDText = tostring(item.key)
@@ -1598,8 +1598,8 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
             row:Show()
         end
         pickerHint:SetPoint("TOPLEFT", triggerBody, "TOPLEFT", PAD, DYN_Y - height - 4)
-        pickerHint:SetText(#list == 0 and "No BigWigs abilities available for this boss. Enter a spell ID below."
-            or (trigVal == "bwmsg" and "Only abilities announced by BigWigs/DBM can trigger a message reminder." or "Select the spell the boss casts."))
+        pickerHint:SetText(#list == 0 and ns.L("No BigWigs abilities available for this boss. Enter a spell ID below.")
+            or (trigVal == "bwmsg" and ns.L("Only abilities announced by BigWigs/DBM can trigger a message reminder.") or ns.L("Select the spell the boss casts.")))
         pickerHint:SetHeight(28)
         PICKER_HEIGHT = height + 36
     end
@@ -1642,13 +1642,13 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
             return box
         end
 
-        DLabel(trigVal == "bwmsg" and "Message Spell ID / Key" or "Spell ID")
+        DLabel(trigVal == "bwmsg" and ns.L("Message Spell ID / Key") or ns.L("Spell ID"))
         spellBox = DBox(12)
         spellBox:SetText(spellIDText)
-        DLabel("Counter", COUNTER_TIP)
+        DLabel(ns.L("Counter"), COUNTER_TIP)
         counterBox = DBox(40)
         counterBox:SetText(counterText)
-        DLabel(trigVal == "bwmsg" and "Show seconds after the message" or "Show in",
+        DLabel(trigVal == "bwmsg" and ns.L("Show seconds after the message") or ns.L("Show in"),
             SHOW_IN_TIP)
         delayBox = DBox(60)
         delayBox:SetText(delayText)
@@ -1676,11 +1676,11 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
     local function Save()
         local newTrig = BuildTrigger()
         if not newTrig then
-            ns.Print("|cffff6060Enter a valid spell/key and a delay of zero or more seconds.|r")
+            ns.Print(ns.L("|cffff6060Enter a valid spell/key and a delay of zero or more seconds.|r"))
             return
         end
         local name = nameBox:GetText()
-        if not name or name == "" then name = "Reminder" end
+        if not name or name == "" then name = ns.L("Reminder") end
         local dur = tonumber(durBox:GetText()) or 3
         local writeSet = ns.CustomRemindersTable(true, encounterID)
         local key = uid or ("r" .. math.floor(GetTime() * 1000) .. math.random(1, 9999))
@@ -1694,8 +1694,8 @@ function ns.ShowCustomReminderEditor(encounterID, uid, callerEUI, initialTrigger
         if EUI and EUI.RefreshPage then EUI:RefreshPage(true) end
     end
 
-    ns.Button(panel, "Save", 90, 26, Save):SetPoint("BOTTOM", panel, "BOTTOM", -10, 16)
-    ns.Button(panel, "Cancel", 90, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Save"), 90, 26, Save):SetPoint("BOTTOM", panel, "BOTTOM", -10, 16)
+    ns.Button(panel, ns.L("Cancel"), 90, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 90, 16)
 
     dimmer:Show()
@@ -1710,7 +1710,7 @@ function ns.BuildProfileSettings(parent, y)
     local W   = EUI.Widgets
     local _, h
 
-    _, h = W:SectionHeader(parent, "PROFILES", y); y = y - h
+    _, h = W:SectionHeader(parent, ns.L("PROFILES"), y); y = y - h
 
     -- Values/order rebuilt per page build; a create/copy/delete refreshes the page, so the
     -- dropdown never shows a stale list.
@@ -1718,20 +1718,20 @@ function ns.BuildProfileSettings(parent, y)
     local profValues = {}
     for _, name in ipairs(profNames) do profValues[name] = name end
     _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Active Profile",
+        { type = "dropdown", text = ns.L("Active Profile"),
           values = profValues, order = profNames,
-          tooltip = "Which settings profile this character uses. Everything on these pages "
-          .. "-- priority lists, per-boss orders, callouts, positions -- lives in the "
-          .. "profile.",
+          tooltip = ns.L("Which settings profile this character uses. Everything on these pages ")
+          .. ns.L("-- priority lists, per-boss orders, callouts, positions -- lives in the ")
+          .. ns.L("profile."),
           getValue = function() return ns.ActiveProfileName() end,
           setValue = function(v)
               ns.SwitchProfile(v)
               EUI:RefreshPage(true)
           end },
-        { type = "toggle", text = "Match My Spec",
-          tooltip = "Loads the profile bound to whatever spec you switch to, on login and on "
-          .. "every spec change. A whole-file import sets those bindings up; after that, "
-          .. "picking a profile yourself binds it to the spec you are playing.",
+        { type = "toggle", text = ns.L("Match My Spec"),
+          tooltip = ns.L("Loads the profile bound to whatever spec you switch to, on login and on ")
+          .. ns.L("every spec change. A whole-file import sets those bindings up; after that, ")
+          .. ns.L("picking a profile yourself binds it to the spec you are playing."),
           getValue = function() return ns.AutoSpecProfile() end,
           setValue = function(v)
               ns.AutoSpecProfile(v)
@@ -1755,15 +1755,15 @@ function ns.BuildProfileSettings(parent, y)
         local function AfterChange()
             EUI:RefreshPage(true)
         end
-        local newBtn = ns.Button(profRow._leftRegion, "New Profile", 110, 22, function()
-            ShowNamePrompt("New Profile", "Create", "", function(text)
+        local newBtn = ns.Button(profRow._leftRegion, ns.L("New Profile"), 110, 22, function()
+            ShowNamePrompt(ns.L("New Profile"), ns.L("Create"), "", function(text)
                 local name = text:match("^%s*(.-)%s*$")
                 -- A taken name used to fail with "that name is taken" and nothing else, so
                 -- the only way on was to invent a second name. Offer the replacement instead,
                 -- named and spelled out, rather than refusing or doing it silently.
                 if ns.ProfileExists and ns.ProfileExists(name) then
-                    ConfirmOn("Replace", "It starts empty at default settings, on every "
-                        .. "character standing in it. Cannot be undone.", "Replace", name,
+                    ConfirmOn(ns.L("Replace"), ns.L("It starts empty at default settings, on every ")
+                        .. ns.L("character standing in it. Cannot be undone."), ns.L("Replace"), name,
                         function(n)
                             local ok, err = ns.CreateProfile(n, true)
                             if not ok then return false, err end
@@ -1779,20 +1779,20 @@ function ns.BuildProfileSettings(parent, y)
             end)
         end)
         newBtn:SetPoint("LEFT", profRow._leftRegion, "LEFT", 20, 0)
-        ns.Tooltip(newBtn, "New Profile", "A fresh profile with default settings. It becomes "
-            .. "the one every character on this account uses, including any you log into "
-            .. "later. Switch a single character afterwards if you want it on its own.")
+        ns.Tooltip(newBtn, ns.L("New Profile"), ns.L("A fresh profile with default settings. It becomes ")
+            .. ns.L("the one every character on this account uses, including any you log into ")
+            .. ns.L("later. Switch a single character afterwards if you want it on its own."))
         -- "Save As", not "Copy": what it does is store what you have set up under a name of
         -- your choosing, which is what someone looks for a Save button to do. There is no
         -- plain Save because there is nothing to save -- every change is written into the
         -- profile as it is made, and a button that did nothing would only suggest otherwise.
-        local copyBtn = ns.Button(profRow._leftRegion, "Save As New Profile", 150, 22, function()
-            ShowNamePrompt("Save As New Profile", "Save", "", function(text)
+        local copyBtn = ns.Button(profRow._leftRegion, ns.L("Save As New Profile"), 150, 22, function()
+            ShowNamePrompt(ns.L("Save As New Profile"), ns.L("Save"), "", function(text)
                 local name = text:match("^%s*(.-)%s*$")
                 if ns.ProfileExists and ns.ProfileExists(name) then
-                    ConfirmOn("Overwrite", "Everything set up right now replaces what is "
-                        .. "stored under it, on every character standing in it. Cannot be "
-                        .. "undone.", "Overwrite", name,
+                    ConfirmOn(ns.L("Overwrite"), ns.L("Everything set up right now replaces what is ")
+                        .. ns.L("stored under it, on every character standing in it. Cannot be ")
+                        .. ns.L("undone."), ns.L("Overwrite"), name,
                         function(n)
                             local ok, err = ns.CopyProfile(ns.ActiveProfileName(), n, true)
                             if not ok then return false, err end
@@ -1808,29 +1808,29 @@ function ns.BuildProfileSettings(parent, y)
             end)
         end)
         copyBtn:SetPoint("LEFT", newBtn, "RIGHT", 8, 0)
-        ns.Tooltip(copyBtn, "Save As New Profile", "Stores everything set up right now as a "
-            .. "new profile under a name you choose, and switches to it. Your current "
-            .. "profile is left as it was.")
+        ns.Tooltip(copyBtn, ns.L("Save As New Profile"), ns.L("Stores everything set up right now as a ")
+            .. ns.L("new profile under a name you choose, and switches to it. Your current ")
+            .. ns.L("profile is left as it was."))
 
         -- Import always lands a NEW profile and never touches what is here, which is the
         -- right default and the wrong tool once somebody else maintains part of your
         -- setup. This is that other tool.
-        local mergeBtn = ns.Button(profRow._rightRegion, "Merge a Profile In", 150, 22,
+        local mergeBtn = ns.Button(profRow._rightRegion, ns.L("Merge a Profile In"), 150, 22,
             function()
                 if ns.ShowProfileMergeDialog then ns.ShowProfileMergeDialog() end
             end)
         mergeBtn:SetPoint("LEFT", profRow._rightRegion, "LEFT", 20, 0)
-        ns.Tooltip(mergeBtn, "Merge a Profile In", "Takes a profile string somebody else "
-            .. "maintains and merges it into one of yours. A spec they look after "
-            .. "replaces yours for that spec; specs they do not cover are left exactly "
-            .. "as they are, and per-boss reminders are added rather than swapped.")
+        ns.Tooltip(mergeBtn, ns.L("Merge a Profile In"), ns.L("Takes a profile string somebody else ")
+            .. ns.L("maintains and merges it into one of yours. A spec they look after ")
+            .. ns.L("replaces yours for that spec; specs they do not cover are left exactly ")
+            .. ns.L("as they are, and per-boss reminders are added rather than swapped."))
     end
 
     -- Reset and Delete pick their target rather than acting on whatever is loaded. Having to
     -- switch to a profile before you could delete it meant loading the thing you were trying
     -- to get rid of, and reading the confirm dialog as the only clue you were on the right
     -- one. Northern Sky drives both from dropdowns; these do the same.
-    local pickValues, pickOrder = { [""] = "Choose a profile..." }, { "" }
+    local pickValues, pickOrder = { [""] = ns.L("Choose a profile...") }, { "" }
     for i = 1, #profNames do
         pickValues[profNames[i]] = profNames[i]
         pickOrder[#pickOrder + 1] = profNames[i]
@@ -1842,7 +1842,7 @@ function ns.BuildProfileSettings(parent, y)
         local dimmer, panel = ns.MakeModal(360, 140, "profileActConfirm")
         local head = ns.Font(panel, 14, "OUTLINE")
         head:SetPoint("TOP", panel, "TOP", 0, -16)
-        head:SetText(("%s '%s'?"):format(title, chosen))
+        head:SetText((ns.L("%s '%s'?")):format(title, chosen))
         local hint = ns.Font(panel, 11, nil, ns.THEME.muted)
         hint:SetPoint("TOP", head, "BOTTOM", 0, -8)
         hint:SetPoint("LEFT", panel, "LEFT", 16, 0)
@@ -1855,7 +1855,7 @@ function ns.BuildProfileSettings(parent, y)
             EUI:RefreshPage(true)
         end)
         yes:SetPoint("BOTTOM", panel, "BOTTOM", -56, 14)
-        ns.Button(panel, "Cancel", 100, 24, function()
+        ns.Button(panel, ns.L("Cancel"), 100, 24, function()
             dimmer:Hide()
             EUI:RefreshPage(true)
         end):SetPoint("BOTTOM", panel, "BOTTOM", 56, 14)
@@ -1863,30 +1863,30 @@ function ns.BuildProfileSettings(parent, y)
     end
 
     _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Reset Profile",
+        { type = "dropdown", text = ns.L("Reset Profile"),
           values = pickValues, order = pickOrder,
-          tooltip = "Wipes the chosen profile's settings back to defaults. Every other "
-          .. "profile is untouched, and you do not have to be standing in it.",
+          tooltip = ns.L("Wipes the chosen profile's settings back to defaults. Every other ")
+          .. ns.L("profile is untouched, and you do not have to be standing in it."),
           getValue = function() return "" end,
           setValue = function(v)
               if v == "" then return end
-              ConfirmOn("Reset", "Every setting in it returns to default. Cannot be undone.",
-                  "Reset", v, ns.ResetProfileNamed)
+              ConfirmOn(ns.L("Reset"), ns.L("Every setting in it returns to default. Cannot be undone."),
+                  ns.L("Reset"), v, ns.ResetProfileNamed)
           end },
-        { type = "dropdown", text = "Delete Profile",
+        { type = "dropdown", text = ns.L("Delete Profile"),
           values = pickValues, order = pickOrder,
-          tooltip = "Removes the chosen profile. Characters using it move to the account's "
-          .. "default profile, and the last profile cannot be deleted.",
+          tooltip = ns.L("Removes the chosen profile. Characters using it move to the account's ")
+          .. ns.L("default profile, and the last profile cannot be deleted."),
           getValue = function() return "" end,
           setValue = function(v)
               if v == "" then return end
-              ConfirmOn("Delete", "Cannot be undone. Characters using it move to the "
-                  .. "account's default profile.", "Delete", v, ns.DeleteProfile)
+              ConfirmOn(ns.L("Delete"), ns.L("Cannot be undone. Characters using it move to the ")
+                  .. ns.L("account's default profile."), ns.L("Delete"), v, ns.DeleteProfile)
           end }
     ); y = y - h
     local packRow
     packRow, h = W:DualRow(parent, y,
-        { type = "label", text = "      Share your Smart Reminders" },
+        { type = "label", text = ns.L("      Share your Smart Reminders") },
         { type = "label", text = "" }
     ); y = y - h
     -- Not AttachInline here: it chains off a region's existing control, and this right
@@ -1895,28 +1895,28 @@ function ns.BuildProfileSettings(parent, y)
     -- row's LEFT half and overlapped the label text next to it regardless of width.
     -- Anchored to the region's own RIGHT edge directly instead.
     if packRow and packRow._rightRegion then
-        local btn = ns.Button(packRow._rightRegion, "Share your Profile", 130, 22, function()
+        local btn = ns.Button(packRow._rightRegion, ns.L("Share your Profile"), 130, 22, function()
             if ns.ShowPackExport then ns.ShowPackExport() end
         end)
         btn:SetPoint("RIGHT", packRow._rightRegion, "RIGHT", -14, 0)
-        ns.Tooltip(btn, "Share your Smart Reminders",
-            "Everything a curator sets up -- priority lists, per-boss orders, callouts and "
-            .. "written reminders -- as one string to share. A profile built from someone "
-            .. "else's imported pack cannot be shared onward.")
+        ns.Tooltip(btn, ns.L("Share your Smart Reminders"),
+            ns.L("Everything a curator sets up -- priority lists, per-boss orders, callouts and ")
+            .. ns.L("written reminders -- as one string to share. A profile built from someone ")
+            .. ns.L("else's imported pack cannot be shared onward."))
     end
     local packRow2
     packRow2, h = W:DualRow(parent, y,
-        { type = "label", text = "      Import Smart Reminder Profile" },
+        { type = "label", text = ns.L("      Import Smart Reminder Profile") },
         { type = "label", text = "" }
     ); y = y - h
     if packRow2 and packRow2._rightRegion then
-        local btn = ns.Button(packRow2._rightRegion, "Import Profile", 120, 22, function()
+        local btn = ns.Button(packRow2._rightRegion, ns.L("Import Profile"), 120, 22, function()
             if ns.ShowPackImport then ns.ShowPackImport() end
         end)
         btn:SetPoint("RIGHT", packRow2._rightRegion, "RIGHT", -14, 0)
-        ns.Tooltip(btn, "Import Profile",
-            "Paste a profile string. Nothing applies until you press Import, and a damaged "
-            .. "string is refused outright.")
+        ns.Tooltip(btn, ns.L("Import Profile"),
+            ns.L("Paste a profile string. Nothing applies until you press Import, and a damaged ")
+            .. ns.L("string is refused outright."))
     end
 
     return y
@@ -1950,7 +1950,7 @@ local selectedBossIdx = {}   -- keyed by instance.id
 --  spec/name/subgroup too, the same NSRT/TimelineReminders-style tool
 --  ns.ShowBossReminderPicker's boss-wide reminders already are.
 -------------------------------------------------------------------------------
-local RR_ROLE_VALUES = { TANK = "Tank", HEALER = "Healer", DAMAGER = "DPS" }
+local RR_ROLE_VALUES = { TANK = ns.L("Tank"), HEALER = ns.L("Healer"), DAMAGER = ns.L("DPS") }
 local RR_ROLE_ORDER = { "TANK", "HEALER", "DAMAGER" }
 
 -- Categories join with " + " (AND, narrows), values within one category join with
@@ -1958,7 +1958,7 @@ local RR_ROLE_ORDER = { "TANK", "HEALER", "DAMAGER" }
 -- what the summary says is what the targeting actually does.
 local function RaidReminderTargetDesc(target)
     target = ns.NormalizeRaidReminderTarget(target)
-    if target.all then return "Everyone" end
+    if target.all then return ns.L("Everyone") end
 
     local function Joined(set, label, order)
         if not (set and next(set)) then return nil end
@@ -1977,9 +1977,9 @@ local function RaidReminderTargetDesc(target)
     end); if p then parts[#parts + 1] = p end
     p = Joined(target.specs, ns.SpecName); if p then parts[#parts + 1] = p end
     p = Joined(target.names, nil, ", "); if p then parts[#parts + 1] = p end
-    p = Joined(target.subgroups, function(k) return "Group " .. k end); if p then parts[#parts + 1] = p end
+    p = Joined(target.subgroups, function(k) return ns.L("Group ") .. k end); if p then parts[#parts + 1] = p end
 
-    if #parts == 0 then return "Everyone" end
+    if #parts == 0 then return ns.L("Everyone") end
     return table.concat(parts, " + ")
 end
 
@@ -1997,9 +1997,9 @@ local function FindBoundRaidReminder(encounterID, spellID)
     return nil, nil
 end
 
-local RR_DISPLAY_VALUES = { text = "Message", timer = "Timer", icon = "Icon", bar = "Bar",
-    circle = "Circle", chat = "Chat Line", nameplateGlow = "Nameplate Glow",
-    raidframeGlow = "Raid-Frame Glow" }
+local RR_DISPLAY_VALUES = { text = ns.L("Message"), timer = ns.L("Timer"), icon = ns.L("Icon"), bar = ns.L("Bar"),
+    circle = ns.L("Circle"), chat = ns.L("Chat Line"), nameplateGlow = ns.L("Nameplate Glow"),
+    raidframeGlow = ns.L("Raid-Frame Glow") }
 local RR_DISPLAY_ORDER = { "text", "timer", "icon", "bar", "circle", "chat",
     "nameplateGlow", "raidframeGlow" }
 -- LOCALIZED_CLASS_NAMES_MALE carries every class token the client knows, including ones
@@ -2027,15 +2027,15 @@ end
 -- Human-readable summary of who loads a binding. Its own spec always does -- that is the
 -- table it is stored in -- so this only ever describes the extra role/class shares.
 function ns.DescribeBindingScope(scope)
-    if type(scope) ~= "table" or not next(scope) then return "this spec only" end
-    local parts = { "this spec" }
+    if type(scope) ~= "table" or not next(scope) then return ns.L("this spec only") end
+    local parts = { ns.L("this spec") }
 
     local roles = {}
     for role in pairs(scope.roles or {}) do
-        roles[#roles + 1] = (role == "DAMAGER" and "DPS") or (role:sub(1, 1) .. role:sub(2):lower())
+        roles[#roles + 1] = (role == "DAMAGER" and ns.L("DPS")) or ns.L(role:sub(1, 1) .. role:sub(2):lower())
     end
     table.sort(roles)
-    if #roles > 0 then parts[#parts + 1] = "any " .. table.concat(roles, "/") end
+    if #roles > 0 then parts[#parts + 1] = ns.L("any ") .. table.concat(roles, "/") end
 
     local classes = {}
     local names = _G.LOCALIZED_CLASS_NAMES_MALE or {}
@@ -2043,7 +2043,7 @@ function ns.DescribeBindingScope(scope)
         classes[#classes + 1] = names[token] or token
     end
     table.sort(classes)
-    if #classes > 0 then parts[#parts + 1] = "any " .. table.concat(classes, "/") end
+    if #classes > 0 then parts[#parts + 1] = ns.L("any ") .. table.concat(classes, "/") end
 
     return table.concat(parts, " + ")
 end
@@ -2056,14 +2056,14 @@ function ns.ShowBindingScopePicker(scope, onAccept)
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText("Loads for")
+    head:SetText(ns.L("Loads for"))
 
     local hint = ns.Font(panel, 10, nil, ns.THEME.muted)
     hint:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -40)
     hint:SetPoint("RIGHT", panel, "RIGHT", -20, 0)
     hint:SetJustifyH("LEFT")
     hint:SetWordWrap(true)
-    hint:SetText("The spec that made this always loads it. Tick anything here to share it with other specs as well.")
+    hint:SetText(ns.L("The spec that made this always loads it. Tick anything here to share it with other specs as well."))
 
     -- Working copies, so Cancel leaves the saved scope untouched.
     local roles, classes = {}, {}
@@ -2100,10 +2100,10 @@ function ns.ShowBindingScopePicker(scope, onAccept)
         y = y - math.ceil(#items / perRow) * 22 - 10
     end
 
-    Label("Also load for any of these roles")
-    Grid({ { "TANK", "Tank" }, { "HEALER", "Healer" }, { "DAMAGER", "DPS" } }, roles, 3, 110)
+    Label(ns.L("Also load for any of these roles"))
+    Grid({ { "TANK", ns.L("Tank") }, { "HEALER", ns.L("Healer") }, { "DAMAGER", ns.L("DPS") } }, roles, 3, 110)
 
-    Label("...or any of these classes")
+    Label(ns.L("...or any of these classes"))
     do
         local items = ns.PlayableClasses()
         local colors = RAID_CLASS_COLORS or CUSTOM_CLASS_COLORS
@@ -2113,7 +2113,7 @@ function ns.ShowBindingScopePicker(scope, onAccept)
         end)
     end
 
-    ns.Button(panel, "Accept", 90, 26, function()
+    ns.Button(panel, ns.L("Accept"), 90, 26, function()
         local out = {}
         if next(roles) then out.roles = roles end
         if next(classes) then out.classes = classes end
@@ -2122,7 +2122,7 @@ function ns.ShowBindingScopePicker(scope, onAccept)
         onAccept(next(out) and out or nil)
         dimmer:Hide()
     end):SetPoint("BOTTOM", panel, "BOTTOM", -50, 16)
-    ns.Button(panel, "Cancel", 90, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Cancel"), 90, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 50, 16)
 
     dimmer:Show()
@@ -2143,7 +2143,7 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText(ability.title or "Ability")
+    head:SetText(ability.title or ns.L("Ability"))
 
     local PAD = 20
     local TAB_TOP = -46
@@ -2213,8 +2213,8 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
         tabBtns[id] = btn
         return btn
     end
-    local defTabBtn = AddPageTab("defensive", "Cooldown Preset")
-    AddPageTab("custom", "Ability Reminder", defTabBtn)
+    local defTabBtn = AddPageTab("defensive", ns.L("Cooldown Preset"))
+    AddPageTab("custom", ns.L("Ability Reminder"), defTabBtn)
     defTabBtn.marker:Show()
     defTabBtn.label:SetTextColor(ns.THEME.fg.r, ns.THEME.fg.g, ns.THEME.fg.b, 1)
 
@@ -2270,8 +2270,8 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
                 hint:SetPoint("TOPLEFT", body, "TOPLEFT", 0, by)
                 hint:SetPoint("RIGHT", body, "RIGHT", 0, 0)
                 hint:SetWordWrap(true)
-                hint:SetText("|cff9a9ea6No presets yet -- add one on the Setup page "
-                    .. "first.|r")
+                hint:SetText(ns.L("|cff9a9ea6No presets yet -- add one on the Setup page ")
+                    .. ns.L("first.|r"))
                 by = by - 34
             else
                 local presetValues, presetOrder = {}, {}
@@ -2294,7 +2294,7 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
                     presetVal = binding.preset or ns.BossPresetKey(specID, encounterID)
                         or ns.ActivePresetKey(specID) or presetOrder[1]
                 end
-                Label("Cooldown Preset")
+                Label(ns.L("Cooldown Preset"))
                 DropdownRow(presetValues, presetOrder,
                     function() return presetVal end,
                     function(v) presetVal = v end)
@@ -2305,8 +2305,8 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
             note:SetPoint("RIGHT", body, "RIGHT", 0, 0)
             note:SetJustifyH("LEFT")
             note:SetWordWrap(true)
-            note:SetText("Calls out the highest defensive on that preset still ready "
-                .. "when this ability is cast.")
+            note:SetText(ns.L("Calls out the highest defensive on that preset still ready ")
+                .. ns.L("when this ability is cast."))
             by = by - 30
 
             -- Lazily initialized, not re-derived on every rebuild (see its own comment
@@ -2315,7 +2315,7 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
             if leadTimeVal == nil then
                 leadTimeVal = binding.leadTime or (ns.DB().leadTime or 3)
             end
-            Label("Warning Time (+before / -after impact)")
+            Label(ns.L("Warning Time (+before / -after impact)"))
             -- -30 to 10, not 0 to 10: requested for Rav'i's Triple Shot, called out a beat
             -- AFTER the volley lands rather than before it. Negative is what that is --
             -- ScheduleBWFire already reads a lead past the bar's own length as "wait this
@@ -2336,9 +2336,9 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
             leadHint:SetPoint("RIGHT", body, "RIGHT", 0, 0)
             leadHint:SetJustifyH("LEFT")
             leadHint:SetWordWrap(true)
-            leadHint:SetText("Positive calls out before the hit lands, as usual. Negative "
-                .. "waits until that many seconds AFTER it lands instead -- for a defensive "
-                .. "that only matters once the mechanic is over.")
+            leadHint:SetText(ns.L("Positive calls out before the hit lands, as usual. Negative ")
+                .. ns.L("waits until that many seconds AFTER it lands instead -- for a defensive ")
+                .. ns.L("that only matters once the mechanic is over."))
             by = by - math.ceil(leadHint:GetStringHeight()) - 16
 
             -- The last step, per ability rather than once for the spec. Defaults to whatever
@@ -2347,24 +2347,24 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
             if externalVal == nil then
                 externalVal = ns.ExternalCallFor(encounterID, ability.spellID)
             end
-            Label("|cff6DD09AHealer|r Reminder")
+            Label(ns.L("|cff6DD09AHealer|r Reminder"))
             local healerCheck = EUI.BuildToggleControl(body, body:GetFrameLevel() + 1,
                 function() return healerVal end,
                 function(v) healerVal = v and true or false end)
             healerCheck:SetPoint("TOPLEFT", body, "TOPLEFT", 0, by)
-            ns.Tooltip(healerCheck, "Healer Reminder",
-                "Mark this preset callout for the healer-reminder switch. General defensive callouts should stay unmarked.")
+            ns.Tooltip(healerCheck, ns.L("Healer Reminder"),
+                ns.L("Mark this preset callout for the healer-reminder switch. General defensive callouts should stay unmarked."))
             by = by - 38
 
-            Label("Call for an External when nothing of yours is up")
+            Label(ns.L("Call for an External when nothing of yours is up"))
             local extHint = ns.Font(body, 10, nil, ns.THEME.muted)
             extHint:SetPoint("TOPLEFT", body, "TOPLEFT", 0, by)
             extHint:SetPoint("RIGHT", body, "RIGHT", 0, 0)
             extHint:SetJustifyH("LEFT")
             extHint:SetWordWrap(true)
-            extHint:SetText("Off means this ability stays silent when your list is empty, "
-                .. "instead of asking the raid for help on a hit nobody was going to answer. "
-                .. "Untouched, it follows the spec-wide setting on the Setup page.")
+            extHint:SetText(ns.L("Off means this ability stays silent when your list is empty, ")
+                .. ns.L("instead of asking the raid for help on a hit nobody was going to answer. ")
+                .. ns.L("Untouched, it follows the spec-wide setting on the Setup page."))
             by = by - math.ceil(extHint:GetStringHeight()) - 10
 
             local extCheck = (EUI or ns.UI).BuildToggleControl(body, body:GetFrameLevel() + 1,
@@ -2379,31 +2379,31 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
             hint:SetPoint("RIGHT", body, "RIGHT", 0, 0)
             hint:SetJustifyH("LEFT")
             hint:SetWordWrap(true)
-            hint:SetText("A written note tied straight to this ability's own BigWigs "
-                .. "cast or bar -- assignable to a role, class, spec, player or "
-                .. "subgroup, not just you.")
+            hint:SetText(ns.L("A written note tied straight to this ability's own BigWigs ")
+                .. ns.L("cast or bar -- assignable to a role, class, spec, player or ")
+                .. ns.L("subgroup, not just you."))
             by = by - 36
 
             local uid, entry = FindBoundRaidReminder(encounterID, ability.spellID)
             if entry then
                 local nameLbl = ns.Font(body, 12, nil, ns.THEME.fg)
                 nameLbl:SetPoint("TOPLEFT", body, "TOPLEFT", 0, by)
-                nameLbl:SetText(entry.name or "Reminder")
+                nameLbl:SetText(entry.name or ns.L("Reminder"))
                 by = by - 18
 
                 local descLbl = ns.Font(body, 11, nil, ns.THEME.muted)
                 descLbl:SetPoint("TOPLEFT", body, "TOPLEFT", 0, by)
                 descLbl:SetText(RaidReminderTargetDesc(entry.target) .. "  -- "
-                    .. (RR_DISPLAY_VALUES[entry.display and entry.display.type] or "Message"))
+                    .. (RR_DISPLAY_VALUES[entry.display and entry.display.type] or ns.L("Message")))
                 by = by - 30
 
-                local editBtn = ns.Button(body, "Edit", 100, 26, function()
+                local editBtn = ns.Button(body, ns.L("Edit"), 100, 26, function()
                     local nestedDimmer = ns.ShowRaidReminderEditor(
                         encounterID, uid, EUI, nil, ability.spellID)
                     if nestedDimmer then nestedDimmer:HookScript("OnHide", RebuildBody) end
                 end)
                 editBtn:SetPoint("TOPLEFT", body, "TOPLEFT", 0, by)
-                local removeBtn = ns.Button(body, "Remove", 100, 26, function()
+                local removeBtn = ns.Button(body, ns.L("Remove"), 100, 26, function()
                     local writeSet = ns.RaidRemindersTable(false, encounterID)
                     if writeSet then writeSet[uid] = nil end
                     RebuildBody()
@@ -2413,10 +2413,10 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
             else
                 local noneLbl = ns.Font(body, 11, nil, ns.THEME.muted)
                 noneLbl:SetPoint("TOPLEFT", body, "TOPLEFT", 0, by)
-                noneLbl:SetText("None yet for this ability.")
+                noneLbl:SetText(ns.L("None yet for this ability."))
                 by = by - 26
 
-                local addBtn = ns.Button(body, "+ Add a Ability Reminder", 200, 26, function()
+                local addBtn = ns.Button(body, ns.L("+ Add a Ability Reminder"), 200, 26, function()
                     local nestedDimmer = ns.ShowRaidReminderEditor(
                         encounterID, nil, EUI, nil, ability.spellID)
                     if nestedDimmer then nestedDimmer:HookScript("OnHide", RebuildBody) end
@@ -2432,8 +2432,8 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
             errText:SetPoint("RIGHT", body, "RIGHT", 0, 0)
             errText:SetJustifyH("LEFT")
             errText:SetWordWrap(true)
-            errText:SetText("Failed to build this panel: " .. tostring(err))
-            ns.Print("|cffff6060ability reminder picker|r: " .. tostring(err))
+            errText:SetText(ns.L("Failed to build this panel: ") .. tostring(err))
+            ns.Print(ns.L("|cffff6060ability reminder picker|r: ") .. tostring(err))
         end
     end
 
@@ -2479,19 +2479,19 @@ function ns.ShowAbilityReminderPicker(encounterID, ability, callerEUI)
     scopeText:SetJustifyH("LEFT")
     scopeText:SetWordWrap(false)
     local function RefreshScopeText()
-        scopeText:SetText("Loads for: " .. ns.DescribeBindingScope(scopeVal))
+        scopeText:SetText(ns.L("Loads for: ") .. ns.DescribeBindingScope(scopeVal))
     end
     RefreshScopeText()
 
-    ns.Button(panel, "Change", 70, 22, function()
+    ns.Button(panel, ns.L("Change"), 70, 22, function()
         ns.ShowBindingScopePicker(scopeVal, function(newScope)
             scopeVal = newScope
             RefreshScopeText()
         end)
     end):SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -PAD, 48)
 
-    ns.Button(panel, "Save", 90, 26, Save):SetPoint("BOTTOM", panel, "BOTTOM", -50, 16)
-    ns.Button(panel, "Cancel", 90, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Save"), 90, 26, Save):SetPoint("BOTTOM", panel, "BOTTOM", -50, 16)
+    ns.Button(panel, ns.L("Cancel"), 90, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 50, 16)
 
     dimmer:Show()
@@ -2533,16 +2533,16 @@ local function RenderAbilityRow(parent, y, encounterID, ability, specID, EUI)
 
     local cog = ns.Button(row, "...", 30, 26, function()
         if not ability.spellID then
-            ns.Print("|cffff6060this journal entry has no spell id to bind to|r")
+            ns.Print(ns.L("|cffff6060this journal entry has no spell id to bind to|r"))
             return
         end
         ns.ShowAbilityReminderPicker(encounterID, ability, EUI)
     end)
     cog:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, -4)
 
-    local test = ns.Button(row, "Test", 44, 26, function()
+    local test = ns.Button(row, ns.L("Test"), 44, 26, function()
         if not ability.spellID then
-            ns.Print("|cffff6060this journal entry has no spell id to bind to|r")
+            ns.Print(ns.L("|cffff6060this journal entry has no spell id to bind to|r"))
             return
         end
         ns.TestFireAbility(encounterID, ability.spellID)
@@ -2554,8 +2554,8 @@ local function RenderAbilityRow(parent, y, encounterID, ability, specID, EUI)
     end)
     remove:SetPoint("TOPRIGHT", test, "TOPLEFT", -4, 0)
     remove.label:SetTextColor(1, 0.38, 0.38, 1)
-    ns.Tooltip(remove, "Remove Ability",
-        "Take this ability off the boss. Its preset and warning time go with it.")
+    ns.Tooltip(remove, ns.L("Remove Ability"),
+        ns.L("Take this ability off the boss. Its preset and warning time go with it."))
 
     -- Role/difficulty flags straight off the journal (FLAG_LABELS, same icon set the
     -- in-game Adventure Guide shows) -- Tank/Dps/Healer first since those are the ones
@@ -2568,9 +2568,9 @@ local function RenderAbilityRow(parent, y, encounterID, ability, specID, EUI)
         for label in ability.extras:gmatch("[^,]+") do
             label = label:match("^%s*(.-)%s*$")
             if ROLE_COLOR[label] then
-                roles[#roles + 1] = ROLE_COLOR[label] .. label .. "|r"
+                roles[#roles + 1] = ROLE_COLOR[label] .. ns.L(label) .. "|r"
             elseif label ~= "" then
-                rest[#rest + 1] = label
+                rest[#rest + 1] = ns.L(label)
             end
         end
         if #roles > 0 then roleTag = table.concat(roles, " ") end
@@ -2582,7 +2582,7 @@ local function RenderAbilityRow(parent, y, encounterID, ability, specID, EUI)
     title:SetPoint("RIGHT", remove, "LEFT", -8, 0)
     title:SetJustifyH("LEFT")
     local binding = ability.spellID and ns.BindingForBossModKey(encounterID, ability.spellID)
-    local healerTag = binding and binding.healerReminder and "  |cff6DD09A[Healer Reminder]|r" or ""
+    local healerTag = binding and binding.healerReminder and ns.L("  |cff6DD09A[Healer Reminder]|r") or ""
     title:SetText((ability.title or "?") .. (roleTag and ("  " .. roleTag) or "") .. healerTag)
 
     local desc = ns.Font(row, 11, nil, ns.THEME.muted)
@@ -2591,7 +2591,7 @@ local function RenderAbilityRow(parent, y, encounterID, ability, specID, EUI)
     desc:SetHeight(ABILITY_ROW_H - 24)
     desc:SetJustifyH("LEFT")
     desc:SetWordWrap(true)
-    local descText = ability.description or "|cff9a9ea6No description in the journal.|r"
+    local descText = ability.description or ns.L("|cff9a9ea6No description in the journal.|r")
     if restTag then descText = ("|cff9a9ea6[%s]|r  "):format(restTag) .. descText end
     desc:SetText(descText)
 
@@ -2615,7 +2615,7 @@ local function RenderBossMessageSection(parent, y, EUI, encounterID)
 
     local head = ns.Font(parent, 12, nil, ns.THEME.accent)
     head:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
-    head:SetText("BOSS REMINDERS")
+    head:SetText(ns.L("BOSS REMINDERS"))
     y = y - 20
 
     local note = ns.Font(parent, 11, nil, ns.THEME.muted)
@@ -2623,11 +2623,11 @@ local function RenderBossMessageSection(parent, y, EUI, encounterID)
     note:SetPoint("RIGHT", parent, "RIGHT", -PADR, 0)
     note:SetJustifyH("LEFT")
     note:SetWordWrap(true)
-    note:SetText("Your own reminders for this boss. A reminder can start from a BigWigs or "
-        .. "DBM message, or from the boss beginning or finishing a cast -- pick which in the "
-        .. "editor. A message trigger needs Messages enabled for that ability in BigWigs. "
-        .. "Bars keep using the ability's own preset and warning time, so both can run "
-        .. "together. Test previews the saved output immediately, without waiting.")
+    note:SetText(ns.L("Your own reminders for this boss. A reminder can start from a BigWigs or ")
+        .. ns.L("DBM message, or from the boss beginning or finishing a cast -- pick which in the ")
+        .. ns.L("editor. A message trigger needs Messages enabled for that ability in BigWigs. ")
+        .. ns.L("Bars keep using the ability's own preset and warning time, so both can run ")
+        .. ns.L("together. Test previews the saved output immediately, without waiting."))
     note:SetHeight(math.max(16, note:GetStringHeight() + 4))
     y = y - note:GetHeight() - 8
 
@@ -2646,7 +2646,7 @@ local function RenderBossMessageSection(parent, y, EUI, encounterID)
     if #list == 0 then
         local none = ns.Font(parent, 11, nil, ns.THEME.muted)
         none:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
-        none:SetText("None yet for this boss.")
+        none:SetText(ns.L("None yet for this boss."))
         y = y - 20
     else
         for i = 1, #list do
@@ -2665,17 +2665,17 @@ local function RenderBossMessageSection(parent, y, EUI, encounterID)
                 ns.RefreshRuntime()
             end)
 
-            local del = ns.Button(row, "Delete", 56, 22, function()
+            local del = ns.Button(row, ns.L("Delete"), 56, 22, function()
                 local writeSet = ns.CustomRemindersTable(false, encounterID)
                 if writeSet then writeSet[uid] = nil end
                 ns.RefreshRuntime()
                 Refresh()
             end)
             del:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-            local edit = ns.Button(row, "Edit", 46, 22, function() Edit(uid) end)
+            local edit = ns.Button(row, ns.L("Edit"), 46, 22, function() Edit(uid) end)
             edit:SetPoint("RIGHT", del, "LEFT", -4, 0)
 
-            local test = ns.Button(row, "Test", 44, 22, function()
+            local test = ns.Button(row, ns.L("Test"), 44, 22, function()
                 if r.defensive then
                     ns.TestFireAbility(encounterID, r.trigger.spellID, r)
                 else
@@ -2689,16 +2689,16 @@ local function RenderBossMessageSection(parent, y, EUI, encounterID)
             lbl:SetPoint("LEFT", check, "RIGHT", 4, 0)
             lbl:SetPoint("RIGHT", test, "LEFT", -8, 0)
             lbl:SetJustifyH("LEFT")
-            lbl:SetText((r.name or "Reminder") .. "  |cff9a9ea6("
+            lbl:SetText((r.name or ns.L("Reminder")) .. "  |cff9a9ea6("
                 .. ((TRIGGER_CHOICES[r.trigger.type] or r.trigger.type)
-                    .. (delay and (" +" .. tostring(delay) .. "s") or ""))
+                    .. (delay and (" +" .. tostring(delay) .. (GetLocale() == "ruRU" and " сек." or "s")) or ""))
                 .. ")|r")
             y = y - 26
         end
     end
     y = y - 6
 
-    local add = ns.Button(parent, "+ Add Reminder", 230, 26,
+    local add = ns.Button(parent, ns.L("+ Add Reminder"), 230, 26,
         function() Edit(nil) end)
     add:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
     return y - 34
@@ -2714,7 +2714,7 @@ local function RenderInstanceDetail(parent, y, W, EUI, inst, specID)
     if not boss then
         local hint = ns.Font(parent, 12, nil, ns.THEME.muted)
         hint:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
-        hint:SetText("This instance has no bosses in the journal yet.")
+        hint:SetText(ns.L("This instance has no bosses in the journal yet."))
         return y - 20
     end
 
@@ -2729,17 +2729,17 @@ local function RenderInstanceDetail(parent, y, W, EUI, inst, specID)
         bossOrder[b] = b
     end
     local _, h = W:DualRow(parent, y,
-        { type = "dropdown", text = "Boss", width = 220,
+        { type = "dropdown", text = ns.L("Boss"), width = 220,
           values = bossValues, order = bossOrder,
-          tooltip = "Which of this instance's bosses the options below apply to.",
+          tooltip = ns.L("Which of this instance's bosses the options below apply to."),
           getValue = function() return selectedBossIdx[inst.id] or 1 end,
           setValue = function(v)
               selectedBossIdx[inst.id] = v
               EUI:RefreshPage(true)
           end },
-        { type = "toggle", text = "Enable This Boss",
-          tooltip = "Off means this boss makes no alerts at all -- no defensives, no "
-          .. "reminders, nothing -- and its options below disappear until it is back on.",
+        { type = "toggle", text = ns.L("Enable This Boss"),
+          tooltip = ns.L("Off means this boss makes no alerts at all -- no defensives, no ")
+          .. ns.L("reminders, nothing -- and its options below disappear until it is back on."),
           getValue = function() return bossOn end,
           setValue = function(v)
               if type(db.bossOff) ~= "table" then db.bossOff = {} end
@@ -2764,7 +2764,7 @@ local function RenderInstanceDetail(parent, y, W, EUI, inst, specID)
     if not (abilities and #abilities > 0) then
         local hint = ns.Font(parent, 12, nil, ns.THEME.muted)
         hint:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
-        hint:SetText("No abilities listed in the journal for this boss.")
+        hint:SetText(ns.L("No abilities listed in the journal for this boss."))
         return RenderBossMessageSection(parent, y - 26, EUI, boss.encounterID)
     end
 
@@ -2779,22 +2779,22 @@ local function RenderInstanceDetail(parent, y, W, EUI, inst, specID)
         end
     end
 
-    local addBtn = ns.Button(parent, "+ Add Ability", 130, 24, function()
+    local addBtn = ns.Button(parent, ns.L("+ Add Ability"), 130, 24, function()
         ns.ShowAbilityPicker(boss.encounterID, abilities, EUI)
     end)
     addBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
 
-    local copyBtn = ns.Button(parent, "Copy From Spec", 130, 24, function()
+    local copyBtn = ns.Button(parent, ns.L("Copy From Spec"), 130, 24, function()
         -- The set travels with it so this popup's own "every boss" tick keeps to the same
         -- side of the raid/dungeon split as the boss it was opened from.
         local set, word = ns.EncounterSetForKind(inst.isRaid)
         ns.ShowCopyBindingsPopup(boss.encounterID, boss.name, EUI, set, word)
     end)
     copyBtn:SetPoint("LEFT", addBtn, "RIGHT", 8, 0)
-    ns.Tooltip(copyBtn, "Copy From Spec",
-        "Brings another spec's abilities for this boss over to this one. Abilities are saved "
-        .. "per spec, so a spec you have not set up yet starts empty. Anything already set up "
-        .. "here is left alone.")
+    ns.Tooltip(copyBtn, ns.L("Copy From Spec"),
+        ns.L("Brings another spec's abilities for this boss over to this one. Abilities are saved ")
+        .. ns.L("per spec, so a spec you have not set up yet starts empty. Anything already set up ")
+        .. ns.L("here is left alone."))
     y = y - 30
 
     if #added == 0 then
@@ -2803,8 +2803,8 @@ local function RenderInstanceDetail(parent, y, W, EUI, inst, specID)
         hint:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
         hint:SetJustifyH("LEFT")
         hint:SetWordWrap(true)
-        hint:SetText("No abilities picked for this boss yet. Add Ability lists everything "
-            .. "the journal has for the fight, with the known tank hits marked.")
+        hint:SetText(ns.L("No abilities picked for this boss yet. Add Ability lists everything ")
+            .. ns.L("the journal has for the fight, with the known tank hits marked."))
         return RenderBossMessageSection(parent, y - 40, EUI, boss.encounterID)
     end
 
@@ -2839,24 +2839,24 @@ function ns.ConfirmRemoveAbility(encounterID, ability, callerEUI)
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText("Remove Ability")
+    head:SetText(ns.L("Remove Ability"))
 
     local body = ns.Font(panel, 12, nil, ns.THEME.fg)
     body:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -48)
     body:SetPoint("RIGHT", panel, "RIGHT", -20, 0)
     body:SetJustifyH("LEFT")
     body:SetWordWrap(true)
-    body:SetText(("Remove |cff0091ed%s|r from this boss?"):format(ability.title or "this ability"))
+    body:SetText((ns.L("Remove |cff0091ed%s|r from this boss?")):format(ability.title or ns.L("this ability")))
 
     local warn = ns.Font(panel, 11, nil, ns.THEME.muted)
     warn:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -84)
     warn:SetPoint("RIGHT", panel, "RIGHT", -20, 0)
     warn:SetJustifyH("LEFT")
     warn:SetWordWrap(true)
-    warn:SetText("Its cooldown preset and warning time go with it. Adding it back later "
-        .. "starts that ability fresh.")
+    warn:SetText(ns.L("Its cooldown preset and warning time go with it. Adding it back later ")
+        .. ns.L("starts that ability fresh."))
 
-    local remove = ns.Button(panel, "Remove", 110, 26, function()
+    local remove = ns.Button(panel, ns.L("Remove"), 110, 26, function()
         -- EnsureBinding first: a binding saved under this ability's journal alias reads
         -- back fine but would survive a delete keyed on the current id. Ensuring migrates
         -- the alias onto that id, so the nil below actually removes it.
@@ -2870,7 +2870,7 @@ function ns.ConfirmRemoveAbility(encounterID, ability, callerEUI)
     remove:SetPoint("BOTTOMRIGHT", panel, "BOTTOM", -6, 16)
     remove.label:SetTextColor(1, 0.38, 0.38, 1)
 
-    local cancel = ns.Button(panel, "Cancel", 110, 26, function() dimmer:Hide() end)
+    local cancel = ns.Button(panel, ns.L("Cancel"), 110, 26, function() dimmer:Hide() end)
     cancel:SetPoint("BOTTOMLEFT", panel, "BOTTOM", 6, 16)
 
     dimmer:Show()
@@ -2890,7 +2890,7 @@ function ns.BuildBossListPage(parent, y, isRaid)
     local pageHead = ns.Font(parent, 14, nil, ns.THEME.accent)
     pageHead:SetPoint("TOP", parent, "TOP", 0, y)
     pageHead:SetJustifyH("CENTER")
-    pageHead:SetText(isRaid and "Raid Bosses" or "Dungeon Bosses")
+    pageHead:SetText(isRaid and ns.L("Raid Bosses") or ns.L("Dungeon Bosses"))
     y = y - 22
 
     -- Raid-only on purpose. The gate asks whether the OTHER tank has the boss, and that
@@ -2907,10 +2907,10 @@ function ns.BuildBossListPage(parent, y, isRaid)
         note:SetJustifyH("LEFT")
         note:SetWordWrap(true)
         note:SetText(isTank
-            and "Only While I Have the Boss: on. Stays quiet when the boss is on the "
-                .. "other tank."
-            or "Only While I Have the Boss: off. This spec does not tank, so calls fire "
-                .. "regardless of aggro.")
+            and ns.L("Only While I Have the Boss: on. Stays quiet when the boss is on the ")
+                .. ns.L("other tank.")
+            or ns.L("Only While I Have the Boss: off. This spec does not tank, so calls fire ")
+                .. ns.L("regardless of aggro."))
         y = y - 30
     end
 
@@ -2918,11 +2918,11 @@ function ns.BuildBossListPage(parent, y, isRaid)
     -- trash asks for the same thing separately on its own. Shown on both boss tabs, which
     -- are this same page built twice, and driving the one account-wide switch.
     _, h = W:DualRow(parent, y,
-        { type = "toggle", text = "Show Target on Boss Casts",
-          tooltip = "When a boss cast you have a Boss Cast Starts reminder for names a "
-          .. "player, puts that player's name on the alert in their class colour. Only "
-          .. "while the cast is going out, since that is the only moment the game will say "
-          .. "who is being targeted, and only for the abilities that name anybody at all.",
+        { type = "toggle", text = ns.L("Show Target on Boss Casts"),
+          tooltip = ns.L("When a boss cast you have a Boss Cast Starts reminder for names a ")
+          .. ns.L("player, puts that player's name on the alert in their class colour. Only ")
+          .. ns.L("while the cast is going out, since that is the only moment the game will say ")
+          .. ns.L("who is being targeted, and only for the abilities that name anybody at all."),
           getValue = function() return ns.DB().castTargetBoss == true end,
           setValue = function(v)
               ns.DB().castTargetBoss = v or nil
@@ -2939,13 +2939,13 @@ function ns.BuildBossListPage(parent, y, isRaid)
     local data = ns.ScrapeBosses(false)
     if not data or #data.instances == 0 then
         local why = (scrapeFailed == "busy")
-            and "Close the Dungeon Journal and reopen this page."
-            or "Nothing found yet. Open the Adventure Guide once, then use Refresh below."
+            and ns.L("Close the Dungeon Journal and reopen this page.")
+            or ns.L("Nothing found yet. Open the Adventure Guide once, then use Refresh below.")
         _, h = W:DualRow(parent, y,
             { type = "label", text = why },
-            { type = "label", text = "Run /nutank bosses to see which step came back empty." }
+            { type = "label", text = ns.L("Run /nutank bosses to see which step came back empty.") }
         ); y = y - h
-        _, h = W:Button(parent, "Refresh From the Dungeon Journal", y, function()
+        _, h = W:Button(parent, ns.L("Refresh From the Dungeon Journal"), y, function()
             ns.ScrapeBosses(true)
             EUI:RefreshPage(true)
         end)
@@ -2991,10 +2991,10 @@ function ns.BuildBossListPage(parent, y, isRaid)
         note:SetPoint("RIGHT", parent, "RIGHT", -EUI.CONTENT_PAD, 0)
         note:SetJustifyH("LEFT")
         note:SetWordWrap(true)
-        note:SetText(("This profile has %d %s set up, but none of them on %s -- abilities are "
-            .. "saved per spec. Copy them across below, or switch to a spec that has them.")
-            :format(total, total == 1 and "ability" or "abilities",
-                ns.SpecName(specID) or "this spec"))
+        note:SetText((ns.L("This profile has %d %s set up, but none of them on %s -- abilities are ")
+            .. ns.L("saved per spec. Copy them across below, or switch to a spec that has them."))
+            :format(total, ns.L(total == 1 and "ability" or "abilities"),
+                ns.SpecName(specID) or ns.L("this spec")))
         y = y - 30
     end
 
@@ -3007,22 +3007,22 @@ function ns.BuildBossListPage(parent, y, isRaid)
         row:SetPoint("TOPLEFT", parent, "TOPLEFT", EUI.CONTENT_PAD, y)
         row:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -EUI.CONTENT_PAD, y)
 
-        local label = isRaid and "Copy All Raids From a Spec" or "Copy All Dungeons From a Spec"
+        local label = isRaid and ns.L("Copy All Raids From a Spec") or ns.L("Copy All Dungeons From a Spec")
         local btn = ns.Button(row, label, 220, 26, function()
             ns.ShowCopyBindingsPopup(nil, nil, EUI, encSet, scopeWord)
         end)
         btn:SetPoint("LEFT", row, "LEFT", 20, 0)
-        ns.Tooltip(btn, label, ("Brings another spec's abilities across for every %s at once, "
-            .. "instead of repeating the per-boss copy on each in turn. %s are left to their "
-            .. "own page, and anything this spec already has is left alone."):format(
-            scopeWord:lower(), isRaid and "Dungeons" or "Raids"))
+        ns.Tooltip(btn, label, (ns.L("Brings another spec's abilities across for every %s at once, ")
+            .. ns.L("instead of repeating the per-boss copy on each in turn. %s are left to their ")
+            .. ns.L("own page, and anything this spec already has is left alone.")):format(
+            scopeWord:lower(), isRaid and ns.L("Dungeons") or ns.L("Raids")))
 
         local cap = ns.Font(row, 11, nil, ns.THEME.muted)
         cap:SetPoint("LEFT", btn, "RIGHT", 12, 0)
         cap:SetPoint("RIGHT", row, "RIGHT", -8, 0)
         cap:SetJustifyH("LEFT")
-        cap:SetText(("Sets a new spec up in one press. %s only, nothing already here is "
-            .. "replaced."):format(isRaid and "Raids" or "Dungeons"))
+        cap:SetText((ns.L("Sets a new spec up in one press. %s only, nothing already here is ")
+            .. ns.L("replaced.")):format(isRaid and ns.L("Raids") or ns.L("Dungeons")))
 
         y = y - 40
     end
@@ -3036,7 +3036,7 @@ function ns.BuildBossListPage(parent, y, isRaid)
     local leftHead = ns.Font(parent, 12, nil, ns.THEME.muted)
     leftHead:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, topY)
     leftHead:SetJustifyH("LEFT")
-    leftHead:SetText(isRaid and "Select a Raid" or "Select a Dungeon")
+    leftHead:SetText(isRaid and ns.L("Select a Raid") or ns.L("Select a Dungeon"))
     local listTop = topY - 18
 
     local leftPane = CreateFrame("Frame", nil, parent)
@@ -3103,7 +3103,7 @@ end
 function ns.EncounterSetForKind(isRaid)
     local data = ns.ScrapeBosses(false)
     local set = {}
-    if not data then return set, isRaid and "Raid Boss" or "Dungeon Boss" end
+    if not data then return set, isRaid and ns.L("Raid Boss") or ns.L("Dungeon Boss") end
     for i = 1, #data.instances do
         local inst = data.instances[i]
         if (inst.isRaid or false) == (isRaid and true or false) then
@@ -3113,7 +3113,7 @@ function ns.EncounterSetForKind(isRaid)
             end
         end
     end
-    return set, isRaid and "Raid Boss" or "Dungeon Boss"
+    return set, isRaid and ns.L("Raid Boss") or ns.L("Dungeon Boss")
 end
 
 function ns.ShowCopyBindingsPopup(encounterID, bossName, callerEUI, encSet, scopeWord)
@@ -3126,8 +3126,8 @@ function ns.ShowCopyBindingsPopup(encounterID, bossName, callerEUI, encSet, scop
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
     head:SetText(allMode
-        and ("Copy Every %s From"):format(scopeWord or "Boss")
-        or "Copy Abilities From")
+        and (ns.L("Copy Every %s From")):format(scopeWord or ns.L("Boss"))
+        or ns.L("Copy Abilities From"))
 
     local y = -46
     if #specs == 0 then
@@ -3136,7 +3136,7 @@ function ns.ShowCopyBindingsPopup(encounterID, bossName, callerEUI, encSet, scop
         none:SetPoint("RIGHT", panel, "RIGHT", -20, 0)
         none:SetJustifyH("LEFT")
         none:SetWordWrap(true)
-        none:SetText("No other spec has any abilities saved yet.")
+        none:SetText(ns.L("No other spec has any abilities saved yet."))
     else
         local hint = ns.Font(panel, 11, nil, ns.THEME.muted)
         hint:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, y)
@@ -3144,10 +3144,10 @@ function ns.ShowCopyBindingsPopup(encounterID, bossName, callerEUI, encSet, scop
         hint:SetJustifyH("LEFT")
         hint:SetWordWrap(true)
         hint:SetText(allMode
-            and ("Every %s that spec has set up is copied, and nothing outside them. "
-                .. "Anything this spec already has is left alone."):format(
+            and (ns.L("Every %s that spec has set up is copied, and nothing outside them. ")
+                .. ns.L("Anything this spec already has is left alone.")):format(
                 (scopeWord or "boss"):lower())
-            or "Anything this spec already has is left alone.")
+            or ns.L("Anything this spec already has is left alone."))
         y = y - (allMode and 38 or 26)
 
         -- Nothing to choose when the whole spec is already the subject, and a ticked box
@@ -3162,8 +3162,8 @@ function ns.ShowCopyBindingsPopup(encounterID, bossName, callerEUI, encSet, scop
             chkLbl:SetPoint("LEFT", chk, "RIGHT", 4, 0)
             -- Names the split it keeps to. "Every boss" read as everything the addon knows,
             -- which is what it used to do and what it no longer does.
-            chkLbl:SetText(("Every %s, not just %s"):format(
-                (scopeWord or "boss"):lower(), bossName or "this one"))
+            chkLbl:SetText((ns.L("Every %s, not just %s")):format(
+                (scopeWord or "boss"):lower(), bossName or ns.L("this one")))
             y = y - 28
         end
 
@@ -3175,11 +3175,11 @@ function ns.ShowCopyBindingsPopup(encounterID, bossName, callerEUI, encSet, scop
             local btn = ns.Button(panel, label, 200, 24, function()
                 local copied, skipped, reminders = ns.CopyBindingsFromSpec(
                     s.key, (not allBosses) and encounterID or nil, encSet)
-                ns.Print(("copied |cff0091ed%d|r abilities%s from %s%s.")
+                ns.Print((ns.L("copied |cff0091ed%d|r abilities%s from %s%s."))
                     :format(copied,
-                        reminders > 0 and (" and |cff0091ed" .. reminders .. "|r message reminders") or "",
+                        reminders > 0 and (ns.L(" and |cff0091ed") .. reminders .. ns.L("|r message reminders")) or "",
                         s.name,
-                        skipped > 0 and (", left " .. skipped .. " already here alone") or ""))
+                        skipped > 0 and (ns.L(", left ") .. skipped .. ns.L(" already here alone")) or ""))
                 ns.RefreshRuntime()
                 dimmer:Hide()
                 if EUI and EUI.RefreshPage then EUI:RefreshPage(true) end
@@ -3187,12 +3187,12 @@ function ns.ShowCopyBindingsPopup(encounterID, bossName, callerEUI, encSet, scop
             btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, y)
             local count = ns.Font(panel, 11, nil, ns.THEME.muted)
             count:SetPoint("LEFT", btn, "RIGHT", 10, 0)
-            count:SetText(("%d here, %d total"):format(s.here, s.total))
+            count:SetText((ns.L("%d here, %d total")):format(s.here, s.total))
             y = y - 30
         end
     end
 
-    ns.Button(panel, "Cancel", 90, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Cancel"), 90, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 0, 16)
     dimmer:Show()
 end
@@ -3204,16 +3204,16 @@ function ns.ShowAbilityPicker(encounterID, abilities, callerEUI)
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText("Add Abilities")
+    head:SetText(ns.L("Add Abilities"))
 
     local hint = ns.Font(panel, 11, nil, ns.THEME.muted)
     hint:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -42)
     hint:SetPoint("RIGHT", panel, "RIGHT", -20, 0)
     hint:SetJustifyH("LEFT")
     hint:SetWordWrap(true)
-    hint:SetText("Tick the abilities you want reminders for. Marked ones are what the "
-        .. "addon knows to be tank hits on this boss. Unticking one drops it from the "
-        .. "boss, along with any warning time or reminder set up on it.")
+    hint:SetText(ns.L("Tick the abilities you want reminders for. Marked ones are what the ")
+        .. ns.L("addon knows to be tank hits on this boss. Unticking one drops it from the ")
+        .. ns.L("boss, along with any warning time or reminder set up on it."))
 
     -- Scrolled rather than capped: a journal boss can list well past a screenful, and this
     -- is the only place an ability can be switched on, so a row that does not fit still has
@@ -3275,7 +3275,7 @@ function ns.ShowAbilityPicker(encounterID, abilities, callerEUI)
                     for label in a.extras:gmatch("[^,]+") do
                         label = label:match("^%s*(.-)%s*$")
                         if ROLE_COLOR[label] then
-                            roles[#roles + 1] = ROLE_COLOR[label] .. label .. "|r"
+                            roles[#roles + 1] = ROLE_COLOR[label] .. ns.L(label) .. "|r"
                         end
                     end
                     if #roles > 0 then roleTag = table.concat(roles, " ") end
@@ -3285,9 +3285,9 @@ function ns.ShowAbilityPicker(encounterID, abilities, callerEUI)
                 lbl:SetPoint("RIGHT", row, "RIGHT", 0, 0)
                 lbl:SetJustifyH("LEFT")
                 lbl:SetWordWrap(false)
-                lbl:SetText((a.title or ("Spell " .. a.spellID))
+                lbl:SetText((a.title or (ns.L("Spell ") .. a.spellID))
                     .. (roleTag and ("  " .. roleTag) or "")
-                    .. (curated and "  |cff0091ed[tank hit]|r" or ""))
+                    .. (curated and ns.L("  |cff0091ed[tank hit]|r") or ""))
 
                 y = y - 28
             end
@@ -3295,7 +3295,7 @@ function ns.ShowAbilityPicker(encounterID, abilities, callerEUI)
         if shown == 0 then
             local none = ns.Font(content, 11, nil, ns.THEME.muted)
             none:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
-            none:SetText("Nothing in the journal for this boss carries a spell id.")
+            none:SetText(ns.L("Nothing in the journal for this boss carries a spell id."))
         end
         content:SetHeight(math.max(1, math.abs(y)))
     end)
@@ -3305,11 +3305,11 @@ function ns.ShowAbilityPicker(encounterID, abilities, callerEUI)
         errText:SetPoint("RIGHT", content, "RIGHT", 0, 0)
         errText:SetJustifyH("LEFT")
         errText:SetWordWrap(true)
-        errText:SetText("Failed to build this: " .. tostring(err))
-        ns.Print("|cffff6060ability add picker|r: " .. tostring(err))
+        errText:SetText(ns.L("Failed to build this: ") .. tostring(err))
+        ns.Print(ns.L("|cffff6060ability add picker|r: ") .. tostring(err))
     end
 
-    ns.Button(panel, "Close", 100, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Close"), 100, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 0, 16)
     dimmer:Show()
     return dimmer
@@ -3355,7 +3355,7 @@ local function ObservedRow(content, sid, list, encounterID, isRaid, EUI, onChang
     lbl:SetWidth(150)
     lbl:SetJustifyH("LEFT")
     lbl:SetWordWrap(false)
-    lbl:SetText((info and info.name) or ("Spell " .. sid))
+    lbl:SetText((info and info.name) or (ns.L("Spell ") .. sid))
 
     -- How many time chips actually fit. This row renders on two very different surfaces --
     -- the 480px cog modal and the much wider options tab -- and a boss with a dozen
@@ -3392,18 +3392,18 @@ local function ObservedRow(content, sid, list, encounterID, isRaid, EUI, onChang
             chip:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
             local spread = (slot.hi and slot.lo) and (slot.hi - slot.lo) or 0
             local spreadNote = (spread > 3)
-                and ("Varies by %.0fs across pulls -- treat it as approximate."):format(spread)
-                or "Consistent across pulls."
+                and (ns.L("Varies by %.0fs across pulls -- treat it as approximate.")):format(spread)
+                or ns.L("Consistent across pulls.")
             ns.Tooltip(chip, label,
-                ("Occurrence %d, averaged over %d pull(s). %s Click to build a reminder "
-                .. "for this moment."):format(i, slot.n or 1, spreadNote))
+                (ns.L("Occurrence %d, averaged over %d pull(s). %s Click to build a reminder ")
+                .. ns.L("for this moment.")):format(i, slot.n or 1, spreadNote))
             anchor = chip
         end
     end
     if #list > shownCount then
         local more = ns.Font(row, 10, nil, ns.THEME.muted)
         more:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
-        more:SetText(("+%d more"):format(#list - shownCount))
+        more:SetText((ns.L("+%d more")):format(#list - shownCount))
     end
     return row
 end
@@ -3447,7 +3447,7 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
     local function NoneRow()
         local lbl = ns.Font(content, 11, nil, ns.THEME.muted)
         lbl:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
-        lbl:SetText(anyCombat and "None yet." or "None yet for this boss.")
+        lbl:SetText(anyCombat and ns.L("None yet.") or ns.L("None yet for this boss."))
         y = y - 20
     end
 
@@ -3466,9 +3466,9 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
             setEnabled(self:GetChecked() and true or false)
         end)
 
-        local delBtn = ns.Button(row, "Delete", 56, 22, deleteFn)
+        local delBtn = ns.Button(row, ns.L("Delete"), 56, 22, deleteFn)
         delBtn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-        local editBtn = ns.Button(row, "Edit", 46, 22, editFn)
+        local editBtn = ns.Button(row, ns.L("Edit"), 46, 22, editFn)
         editBtn:SetPoint("RIGHT", delBtn, "LEFT", -4, 0)
 
         local lbl = ns.Font(row, 11, nil, ns.THEME.fg)
@@ -3485,7 +3485,7 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
         -- reminder lists because it is the raw material they are built from: pick a time here
         -- and the editor opens already pointed at it.
         local diffs = ns.ObservedDifficulties and ns.ObservedDifficulties(encounterID) or {}
-        Header("OBSERVED TIMINGS")
+        Header(ns.L("OBSERVED TIMINGS"))
         if #diffs > 0 then
             local pick = observedDiffPick[encounterID]
             local chosen
@@ -3501,7 +3501,7 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
                 local dvalues, dorder = {}, {}
                 for _, d in ipairs(diffs) do
                     local dn = GetDifficultyInfo and GetDifficultyInfo(tonumber(d.key))
-                    dvalues[d.key] = ("%s (%d pulls)"):format(tostring(dn or d.key), d.pulls or 0)
+                    dvalues[d.key] = (ns.L("%s (%d pulls)")):format(tostring(dn or d.key), d.pulls or 0)
                     dorder[#dorder + 1] = d.key
                 end
                 local ddBtn = EUI.BuildDropdownControl(content, 220, content:GetFrameLevel() + 4,
@@ -3534,8 +3534,8 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
 
             local cover = ns.Font(content, 10, nil, ns.THEME.muted)
             cover:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
-            cover:SetText(("from %d pull(s), longest %d:%02d -- click a time to build a "
-                .. "reminder from it"):format(block and block.pulls or 0,
+            cover:SetText((ns.L("from %d pull(s), longest %d:%02d -- click a time to build a ")
+                .. ns.L("reminder from it")):format(block and block.pulls or 0,
                 math.floor((block and block.longest or 0) / 60), (block and block.longest or 0) % 60))
             y = y - 22
         else
@@ -3551,25 +3551,25 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
                 -- Boss Addon only lands on Timeline now by an explicit pick or with no boss
                 -- mod installed at all, and those need different things from the player.
                 if not (_G.BigWigsLoader or _G.DBM) then
-                    why:SetText("Recording rides BigWigs or DBM broadcasts and neither is "
-                        .. "installed. With one of them running, every boss you pull records "
-                        .. "itself here -- there is nothing to switch on.")
+                    why:SetText(ns.L("Recording rides BigWigs or DBM broadcasts and neither is ")
+                        .. ns.L("installed. With one of them running, every boss you pull records ")
+                        .. ns.L("itself here -- there is nothing to switch on."))
                 else
-                    why:SetText("Boss Addon is set to Blizzard Timeline, which keeps ability "
-                        .. "identity secret, so there is nothing to record from. Switch it to "
-                        .. "BigWigs or DBM on the Smart Reminders > Setup tab.")
+                    why:SetText(ns.L("Boss Addon is set to Blizzard Timeline, which keeps ability ")
+                        .. ns.L("identity secret, so there is nothing to record from. Switch it to ")
+                        .. ns.L("BigWigs or DBM on the Smart Reminders > Setup tab."))
                 end
             else
-                why:SetText(("Nothing recorded for this boss yet. Pull it with %s running and "
-                    .. "its timings appear here once the fight ends. It has to be a real boss "
-                    .. "encounter -- trash fires no encounter events, so it records nothing.")
+                why:SetText((ns.L("Nothing recorded for this boss yet. Pull it with %s running and ")
+                    .. ns.L("its timings appear here once the fight ends. It has to be a real boss ")
+                    .. ns.L("encounter -- trash fires no encounter events, so it records nothing."))
                     :format(src == "dbm" and "DBM" or "BigWigs"))
             end
             why:SetHeight(math.max(16, why:GetStringHeight() + 4))
             y = y - why:GetHeight() - 10
         end
 
-        Header((isRaid and "RAID" or "DUNGEON") .. " REMINDERS")
+        Header(ns.L(isRaid and "RAID REMINDERS" or "DUNGEON REMINDERS"))
         local rrSet = ns.RaidRemindersTable and ns.RaidRemindersTable(false, encounterID)
         local rrList = {}
         if rrSet then
@@ -3583,13 +3583,13 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
         else
             for i = 1, #rrList do
                 local uid, r = rrList[i].uid, rrList[i].r
-                local rowName = r.name or "Reminder"
+                local rowName = r.name or ns.L("Reminder")
                 local desc = RaidReminderTargetDesc(r.target)
                 local trig = r.trigger
                 if trig and trig.type == "pull" and trig.delay then
-                    desc = ("+%gs  %s"):format(trig.delay, desc)
+                    desc = (ns.L("+%gs  %s")):format(trig.delay, desc)
                 elseif trig and trig.type == "stage" and trig.delay then
-                    desc = ("P%d +%gs  %s"):format(trig.stage or 0, trig.delay, desc)
+                    desc = (ns.L("P%d +%gs  %s")):format(trig.stage or 0, trig.delay, desc)
                 end
                 ReminderRow(rowName, desc,
                     function() return r.enabled ~= false end,
@@ -3605,13 +3605,13 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
         y = y - 6
 
         local addRRBtn = ns.Button(content,
-            isRaid and "+ Add a Raid Reminder" or "+ Add a Dungeon Reminder", 190, 26, function()
+            isRaid and ns.L("+ Add a Raid Reminder") or ns.L("+ Add a Dungeon Reminder"), 190, 26, function()
                 -- A thrown error here would otherwise be indistinguishable from a dead
                 -- button -- WoW hides script errors by default, so an uncaught throw looks
                 -- exactly like nothing happening at all.
                 local okClick, clickErr = pcall(EditRaidReminder, nil)
                 if not okClick then
-                    ns.Print("|cffff6060could not open the raid reminder editor|r: "
+                    ns.Print(ns.L("|cffff6060could not open the raid reminder editor|r: ")
                         .. tostring(clickErr))
                 end
             end)
@@ -3624,7 +3624,7 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
     -- ability's row; listing them here too would let this generic editor delete the
     -- reminder object while the ability's binding still says "custom", leaving that
     -- ability silently unable to fire either kind of callout.
-    Header("ABILITY REMINDERS")
+    Header(ns.L("ABILITY REMINDERS"))
     local crSet = ns.CustomRemindersTable and ns.CustomRemindersTable(false, encounterID)
     local crList = {}
     if crSet then
@@ -3643,28 +3643,28 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
             local trig = r.trigger
             local trigDesc = "?"
             if trig and trig.type == "pull" then
-                trigDesc = "Pull"
+                trigDesc = ns.L("Pull")
             elseif trig and trig.type == "combat" then
-                trigDesc = trig.delay and ("In Combat +" .. tostring(trig.delay) .. "s")
-                    or "In Combat"
+                trigDesc = trig.delay and (ns.L("In Combat +") .. tostring(trig.delay) .. (GetLocale() == "ruRU" and " сек." or "s"))
+                    or ns.L("In Combat")
             elseif trig and (trig.type == "bwmsg" or trig.type == "bwtimer") then
                 local info = C_Spell and C_Spell.GetSpellInfo
                     and C_Spell.GetSpellInfo(trig.spellID)
-                trigDesc = (trig.type == "bwtimer" and "Timer: " or "Message: ")
+                trigDesc = (trig.type == "bwtimer" and ns.L("Timer: ") or ns.L("Message: "))
                     .. ((info and info.name) or tostring(trig.spellID))
             elseif trig and trig.type == "aura" then
                 local info = C_Spell and C_Spell.GetSpellInfo
                     and C_Spell.GetSpellInfo(trig.spellID)
-                trigDesc = (trig.auraEvent == "removed" and "Aura Removed: " or "Aura Applied: ")
+                trigDesc = (trig.auraEvent == "removed" and ns.L("Aura Removed: ") or ns.L("Aura Applied: "))
                     .. ((info and info.name) or tostring(trig.spellID))
-                    .. (trig.target == "player" and " (You)" or " (Boss)")
+                    .. (trig.target == "player" and ns.L(" (You)") or ns.L(" (Boss)"))
             elseif trig and (trig.type == "caststart" or trig.type == "castend") then
                 local info = C_Spell and C_Spell.GetSpellInfo
                     and C_Spell.GetSpellInfo(trig.spellID)
-                trigDesc = (trig.type == "castend" and "Cast Finishes: " or "Cast Starts: ")
+                trigDesc = (trig.type == "castend" and ns.L("Cast Finishes: ") or ns.L("Cast Starts: "))
                     .. ((info and info.name) or tostring(trig.spellID))
             end
-            ReminderRow(r.name or "Reminder", trigDesc,
+            ReminderRow(r.name or ns.L("Reminder"), trigDesc,
                 function() return r.enabled ~= false end,
                 function(v) r.enabled = v; ns.RefreshRuntime() end,
                 function() EditCustomReminder(uid) end,
@@ -3679,7 +3679,7 @@ function ns.BuildBossReminderSections(content, encounterID, isRaid, startY, opts
     y = y - 6
 
     local addCRBtn = ns.Button(content,
-        anyCombat and "+ Add Reminder" or "+ Add an Ability Reminder",
+        anyCombat and ns.L("+ Add Reminder") or ns.L("+ Add an Ability Reminder"),
         anyCombat and 230 or 190, 26, function()
             EditCustomReminder(nil)
         end)
@@ -3706,7 +3706,7 @@ end
 function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilitySpellID, seed)
     local EUI = callerEUI or ns.UI
     local W = EUI.Widgets
-    local kind = isRaid and "Raid" or "Dungeon"
+    local kind = isRaid and ns.L("Raid") or ns.L("Dungeon")
 
     -- Taller than ShowCustomReminderEditor's 620: the Target tab now carries full
     -- role/class/subgroup checkbox grids plus spec/name text fields instead of one
@@ -3715,8 +3715,8 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText((uid and "Edit " or "New ")
-        .. (abilitySpellID and "Ability Reminder" or (kind .. " Reminder")))
+    head:SetText(ns.L((uid and "Edit " or "New ")
+        .. (abilitySpellID and "Ability Reminder" or ((isRaid and "Raid" or "Dungeon") .. " Reminder"))))
 
     local set = ns.RaidRemindersTable and ns.RaidRemindersTable(false, encounterID)
     local existing = (set and uid) and set[uid] or nil
@@ -3808,8 +3808,8 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         return btn, body
     end
 
-    local triggerTabBtn, triggerBody = AddTab("trigger", "Trigger & Target")
-    local _, displayBody = AddTab("display", "Display", triggerTabBtn)
+    local triggerTabBtn, triggerBody = AddTab("trigger", ns.L("Trigger & Target"))
+    local _, displayBody = AddTab("display", ns.L("Display"), triggerTabBtn)
 
     -------------------------------------------------------------------------
     --  Trigger & Target tab
@@ -3843,7 +3843,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         return box
     end
 
-    TLabel("Name")
+    TLabel(ns.L("Name"))
     local nameBox = TBox(40)
     if existing then
         nameBox:SetText(existing.name or "")
@@ -3928,8 +3928,8 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
 
         if #list == 0 then
             pickerHint:SetPoint("TOPLEFT", triggerBody, "TOPLEFT", PAD, PICKER_TOP)
-            pickerHint:SetText("|cff9a9ea6Nothing recorded for this boss yet -- pull it with "
-                .. "BigWigs running, or type a Spell ID below.|r")
+            pickerHint:SetText(ns.L("|cff9a9ea6Nothing recorded for this boss yet -- pull it with ")
+                .. ns.L("BigWigs running, or type a Spell ID below.|r"))
             pickerHint:SetHeight(28)
             return 28
         end
@@ -3940,7 +3940,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             row:SetPoint("TOPLEFT", triggerBody, "TOPLEFT", PAD, PICKER_TOP - (i - 1) * PICKER_ROW_H)
             local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(item.key)
             row.icon:SetTexture((info and info.iconID) or 134400)
-            row.name:SetText((info and info.name) or (item.entry.text or ("Spell " .. item.key)))
+            row.name:SetText((info and info.name) or (item.entry.text or (ns.L("Spell ") .. item.key)))
             row.tag:SetText("|cfff0a830BW|r")
             row:SetScript("OnClick", function()
                 trigTypeVal = (item.entry.kind == "timer") and "bwtimer" or "bwmsg"
@@ -3951,7 +3951,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         end
         pickerHint:SetPoint("TOPLEFT", triggerBody, "TOPLEFT", PAD, PICKER_TOP - shown * PICKER_ROW_H)
         if #list > shown then
-            pickerHint:SetText(("|cff9a9ea6+%d more not shown -- type the Spell ID below.|r")
+            pickerHint:SetText((ns.L("|cff9a9ea6+%d more not shown -- type the Spell ID below.|r"))
                 :format(#list - shown))
             pickerHint:SetHeight(16)
             return shown * PICKER_ROW_H + 20
@@ -4016,19 +4016,19 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
 
         local typeRowH
         triggerTypeRow, typeRowH = W:DualRow(triggerBody, ty,
-            { type = "dropdown", text = "Trigger Type",
-              values = { bwmsg = "BigWigs Message", bwtimer = "BigWigs Timer",
-                  pull = "Time After Pull", aura = "Gain/Lose a Buff or Debuff",
-                  stage = "Phase Start" },
+            { type = "dropdown", text = ns.L("Trigger Type"),
+              values = { bwmsg = ns.L("BigWigs Message"), bwtimer = ns.L("BigWigs Timer"),
+                  pull = ns.L("Time After Pull"), aura = ns.L("Gain/Lose a Buff or Debuff"),
+                  stage = ns.L("Phase Start") },
               order = { "bwmsg", "bwtimer", "pull", "aura", "stage" },
-              tooltip = "Message fires the instant BigWigs announces it. Timer waits "
-                  .. "out the bar and fires this many seconds before it ends. Time "
-                  .. "After Pull fires a fixed number of seconds into the encounter, "
-                  .. "with no BigWigs mechanic involved. Gain/Lose a Buff or Debuff "
-                  .. "fires off the combat log directly, reliable even when BigWigs "
-                  .. "says nothing about it. Phase Start fires a fixed number of seconds "
-                  .. "after the boss mod announces that phase -- it needs BigWigs or DBM, "
-                  .. "and only fires on bosses whose module announces phases.",
+              tooltip = ns.L("Message fires the instant BigWigs announces it. Timer waits ")
+                  .. ns.L("out the bar and fires this many seconds before it ends. Time ")
+                  .. ns.L("After Pull fires a fixed number of seconds into the encounter, ")
+                  .. ns.L("with no BigWigs mechanic involved. Gain/Lose a Buff or Debuff ")
+                  .. ns.L("fires off the combat log directly, reliable even when BigWigs ")
+                  .. ns.L("says nothing about it. Phase Start fires a fixed number of seconds ")
+                  .. ns.L("after the boss mod announces that phase -- it needs BigWigs or DBM, ")
+                  .. ns.L("and only fires on bosses whose module announces phases."),
               getValue = function() return trigTypeVal end,
               setValue = function(v) trigTypeVal = v; RebuildTriggerFields() end }
         )
@@ -4063,14 +4063,14 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
 
         if trigTypeVal == "pull" then
             spellBox, leadTimeBox = nil, nil
-            DLabel("Delay After Pull (seconds)")
+            DLabel(ns.L("Delay After Pull (seconds)"))
             -- Not a numeric box: note-born entries carry fractional times (1:09.1).
             pullDelayBox = DBox(8)
             pullDelayBox:SetText(pullDelayText)
             pullDelayBox:SetScript("OnTextChanged", function()
                 pullDelayText = pullDelayBox:GetText() or ""
             end)
-            DLabel("Show This Many Seconds Early (blank = at that time)")
+            DLabel(ns.L("Show This Many Seconds Early (blank = at that time)"))
             local leadBox = DBox(4)
             leadBox:SetText(earlyLeadText)
             leadBox:SetScript("OnTextChanged", function()
@@ -4078,19 +4078,19 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             end)
         elseif trigTypeVal == "stage" then
             spellBox, leadTimeBox, pullDelayBox = nil, nil, nil
-            DLabel("Phase Number")
+            DLabel(ns.L("Phase Number"))
             local stageBox = DBox(2, true)
             stageBox:SetText(stageNumText)
             stageBox:SetScript("OnTextChanged", function()
                 stageNumText = stageBox:GetText() or ""
             end)
-            DLabel("Seconds After the Phase Starts")
+            DLabel(ns.L("Seconds After the Phase Starts"))
             local sdBox = DBox(8)
             sdBox:SetText(pullDelayText)
             sdBox:SetScript("OnTextChanged", function()
                 pullDelayText = sdBox:GetText() or ""
             end)
-            DLabel("Show This Many Seconds Early (blank = at that time)")
+            DLabel(ns.L("Show This Many Seconds Early (blank = at that time)"))
             local leadBox = DBox(4)
             leadBox:SetText(earlyLeadText)
             leadBox:SetScript("OnTextChanged", function()
@@ -4098,10 +4098,10 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             end)
         elseif trigTypeVal == "aura" then
             pullDelayBox, leadTimeBox = nil, nil
-            DLabel("Spell ID")
+            DLabel(ns.L("Spell ID"))
             spellBox = DBox(9, true, 80)
             spellBox:SetText(spellIDText)
-            local okBtn = ns.Button(dynFrame, "OK", 54, 26, function() spellBox:ClearFocus() end)
+            local okBtn = ns.Button(dynFrame, ns.L("OK"), 54, 26, function() spellBox:ClearFocus() end)
             okBtn:SetPoint("LEFT", spellBox, "RIGHT", 6, 0)
             local feedback = ns.Font(dynFrame, 10, nil, ns.THEME.muted)
             feedback:SetPoint("TOPLEFT", dynFrame, "TOPLEFT", PAD, dy + 6)
@@ -4115,7 +4115,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
                 elseif spellBox:GetText() == "" then
                     feedback:SetText("")
                 else
-                    feedback:SetText("|cffff6060not a spell id|r")
+                    feedback:SetText(ns.L("|cffff6060not a spell id|r"))
                 end
             end
             spellBox:SetScript("OnTextChanged", function() spellIDText = spellBox:GetText() or ""; Sync() end)
@@ -4124,24 +4124,24 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
 
             local auraRowH
             _, auraRowH = W:DualRow(dynFrame, dy,
-                { type = "dropdown", text = "Event",
-                  values = { applied = "Gained", removed = "Lost" }, order = { "applied", "removed" },
+                { type = "dropdown", text = ns.L("Event"),
+                  values = { applied = ns.L("Gained"), removed = ns.L("Lost") }, order = { "applied", "removed" },
                   getValue = function() return auraEventVal end,
                   setValue = function(v) auraEventVal = v end },
-                { type = "dropdown", text = "On",
-                  values = { player = "You", boss = "The Boss" }, order = { "player", "boss" },
-                  tooltip = "Watch YOUR OWN aura (a defensive/buff you gain or lose) or "
-                      .. "one applied TO the boss (a debuff you or the raid puts on it).",
+                { type = "dropdown", text = ns.L("On"),
+                  values = { player = ns.L("You"), boss = ns.L("The Boss") }, order = { "player", "boss" },
+                  tooltip = ns.L("Watch YOUR OWN aura (a defensive/buff you gain or lose) or ")
+                      .. ns.L("one applied TO the boss (a debuff you or the raid puts on it)."),
                   getValue = function() return auraTargetVal end,
                   setValue = function(v) auraTargetVal = v end }
             )
             dy = dy - auraRowH
         else
             pullDelayBox = nil
-            DLabel("Spell ID")
+            DLabel(ns.L("Spell ID"))
             spellBox = DBox(9, true, 80)
             spellBox:SetText(spellIDText)
-            local okBtn = ns.Button(dynFrame, "OK", 54, 26, function() spellBox:ClearFocus() end)
+            local okBtn = ns.Button(dynFrame, ns.L("OK"), 54, 26, function() spellBox:ClearFocus() end)
             okBtn:SetPoint("LEFT", spellBox, "RIGHT", 6, 0)
             local feedback = ns.Font(dynFrame, 10, nil, ns.THEME.muted)
             feedback:SetPoint("TOPLEFT", dynFrame, "TOPLEFT", PAD, dy + 6)
@@ -4155,8 +4155,8 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
                 elseif spellBox:GetText() == "" then
                     feedback:SetText("")
                 else
-                    feedback:SetText("|cff9a9ea6no spell name found -- boss-mod keys aren't "
-                        .. "always real spell ids, that's fine|r")
+                    feedback:SetText(ns.L("|cff9a9ea6no spell name found -- boss-mod keys aren't ")
+                        .. ns.L("always real spell ids, that's fine|r"))
                 end
             end
             spellBox:SetScript("OnTextChanged", function() spellIDText = spellBox:GetText() or ""; Sync() end)
@@ -4164,7 +4164,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             Sync()
 
             if trigTypeVal == "bwtimer" then
-                DLabel("Warning Time (seconds before it lands)")
+                DLabel(ns.L("Warning Time (seconds before it lands)"))
                 leadTimeBox = DBox(4, true)
                 leadTimeBox:SetText(leadTimeText)
                 leadTimeBox:SetScript("OnTextChanged", function() leadTimeText = leadTimeBox:GetText() or "" end)
@@ -4194,7 +4194,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             l:SetText(text)
             tgy = tgy - 16
         end
-        TargetLabel("Target")
+        TargetLabel(ns.L("Target"))
 
         local allCheck = CreateFrame("CheckButton", nil, targetSection, "UICheckButtonTemplate")
         allCheck:SetSize(20, 20)
@@ -4202,7 +4202,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         allCheck:SetChecked(targetAllVal)
         local allLbl = ns.Font(targetSection, 11, nil, ns.THEME.fg)
         allLbl:SetPoint("LEFT", allCheck, "RIGHT", 4, 0)
-        allLbl:SetText("Everyone")
+        allLbl:SetText(ns.L("Everyone"))
         tgy = tgy - 28
 
         -- Greyed out (not just ignored) while Everyone is checked -- an irrelevant
@@ -4247,14 +4247,14 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             ry = ry - math.ceil(#items / perRow) * 22 - 8
         end
 
-        RestLabel("Role")
+        RestLabel(ns.L("Role"))
         do
             local items = {}
             for i = 1, #RR_ROLE_ORDER do items[i] = { RR_ROLE_ORDER[i], RR_ROLE_VALUES[RR_ROLE_ORDER[i]] } end
             CheckGrid(items, targetRoles, 3, 140)
         end
 
-        RestLabel("Class")
+        RestLabel(ns.L("Class"))
         do
             local items = ns.PlayableClasses()
             local classColors = RAID_CLASS_COLORS or CUSTOM_CLASS_COLORS
@@ -4264,7 +4264,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             end)
         end
 
-        RestLabel("Raid Group")
+        RestLabel(ns.L("Raid Group"))
         do
             local items = {}
             for i = 1, 4 do items[i] = { i, tostring(i) } end
@@ -4293,9 +4293,9 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             box:SetScript("OnTextChanged", function() onChange(box:GetText() or "") end)
             ry = ry - 32
         end
-        RestBox("Spec IDs (comma-separated, optional)", targetSpecText,
+        RestBox(ns.L("Spec IDs (comma-separated, optional)"), targetSpecText,
             function(v) targetSpecText = v end)
-        RestBox("Player Names (comma-separated, exact, optional)", targetNameText,
+        RestBox(ns.L("Player Names (comma-separated, exact, optional)"), targetNameText,
             function(v) targetNameText = v end)
 
         restFrame:SetHeight(-ry)
@@ -4337,26 +4337,26 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
 
     local displayTypeVal = display.type or "text"
     local _, dispRowH = W:DualRow(displayBody, dsy,
-        { type = "dropdown", text = "Display As",
+        { type = "dropdown", text = ns.L("Display As"),
           values = RR_DISPLAY_VALUES, order = RR_DISPLAY_ORDER,
-          tooltip = "Message/Timer/Icon/Bar/Circle each have their own fixed on-screen "
-              .. "spot. Chat Line prints instead of showing anything. Nameplate/"
-              .. "Raid-Frame Glow highlight another raider's own frame -- set who "
-              .. "below. Nameplate Glow does nothing inside dungeons and raids, where the "
-              .. "game keeps friendly nameplates from addons; use Raid-Frame Glow there.",
+          tooltip = ns.L("Message/Timer/Icon/Bar/Circle each have their own fixed on-screen ")
+              .. ns.L("spot. Chat Line prints instead of showing anything. Nameplate/")
+              .. ns.L("Raid-Frame Glow highlight another raider's own frame -- set who ")
+              .. ns.L("below. Nameplate Glow does nothing inside dungeons and raids, where the ")
+              .. ns.L("game keeps friendly nameplates from addons; use Raid-Frame Glow there."),
           getValue = function() return displayTypeVal end,
           setValue = function(v) displayTypeVal = v end }
     ); dsy = dsy - dispRowH
 
-    DsLabel("Glow Player Name (Nameplate/Raid-Frame Glow only)")
+    DsLabel(ns.L("Glow Player Name (Nameplate/Raid-Frame Glow only)"))
     local glowTargetBox = DsBox(24)
     glowTargetBox:SetText(display.glowTarget or "")
 
-    DsLabel("Text -- %name (your name), %specicon, %time (linger seconds), {spell:ID}")
+    DsLabel(ns.L("Text -- %name (your name), %specicon, %time (linger seconds), {spell:ID}"))
     local textBox = DsBox(120)
     textBox:SetText(display.text or "")
 
-    DsLabel("Icon Spell ID (used for Icon display; optional otherwise)")
+    DsLabel(ns.L("Icon Spell ID (used for Icon display; optional otherwise)"))
     local iconBox = DsBox(9, true, PAD + 34)
     local iconPreview = displayBody:CreateTexture(nil, "ARTWORK")
     iconPreview:SetSize(24, 24)
@@ -4376,7 +4376,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         elseif iconBox:GetText() == "" then
             iconPreview:Hide(); iconFeedback:SetText("")
         else
-            iconPreview:Hide(); iconFeedback:SetText("|cffff6060not a spell id|r")
+            iconPreview:Hide(); iconFeedback:SetText(ns.L("|cffff6060not a spell id|r"))
         end
     end
     iconBox:SetScript("OnTextChanged", SyncIcon)
@@ -4389,8 +4389,8 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         g = (existingColor and existingColor.g) or 1, b = (existingColor and existingColor.b) or 1,
         a = (existingColor and existingColor.a) or 1 }
     local _, colorRowH = W:DualRow(displayBody, dsy,
-        { type = "colorpicker", text = "Text Color", hasAlpha = false,
-          tooltip = "This reminder's text color.",
+        { type = "colorpicker", text = ns.L("Text Color"), hasAlpha = false,
+          tooltip = ns.L("This reminder's text color."),
           getValue = function() return pendingColor.r, pendingColor.g, pendingColor.b, pendingColor.a end,
           setValue = function(r, g, b, a) pendingColor = { r = r, g = g, b = b, a = a } end }
     ); dsy = dsy - colorRowH
@@ -4399,8 +4399,8 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
     local soundPaths, soundNames, soundOrder = EUI.BuildAlertSoundTables()
     if EUI.AppendSharedMediaSounds then EUI.AppendSharedMediaSounds(soundPaths, soundNames, soundOrder) end
     local _, soundRowH = W:DualRow(displayBody, dsy,
-        { type = "dropdown", text = "Sound", values = soundNames, order = soundOrder,
-          tooltip = "Plays once when this reminder fires.",
+        { type = "dropdown", text = ns.L("Sound"), values = soundNames, order = soundOrder,
+          tooltip = ns.L("Plays once when this reminder fires."),
           getValue = function() return pendingSoundKey end,
           setValue = function(v)
               pendingSoundKey = v
@@ -4410,15 +4410,15 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
 
     local ttsVal = display.tts == true
     local _, ttsRowH = W:DualRow(displayBody, dsy,
-        { type = "toggle", text = "Speak (Text-to-Speech)",
-          tooltip = "Reads the Text field aloud through your own client's built-in "
-              .. "text-to-speech, using whatever voice/rate you set in the "
-              .. "Accessibility panel.",
+        { type = "toggle", text = ns.L("Speak (Text-to-Speech)"),
+          tooltip = ns.L("Reads the Text field aloud through your own client's built-in ")
+              .. ns.L("text-to-speech, using whatever voice/rate you set in the ")
+              .. ns.L("Accessibility panel."),
           getValue = function() return ttsVal end,
           setValue = function(v) ttsVal = v end }
     ); dsy = dsy - ttsRowH
 
-    DsLabel("Linger (seconds)")
+    DsLabel(ns.L("Linger (seconds)"))
     local durBox = DsBox(3, true)
     durBox:SetText(tostring(display.dur or 4))
 
@@ -4426,7 +4426,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
     -- whatever's currently on screen for this reminder disappears immediately instead
     -- of waiting out its own Linger. Optional: blank means it only ever hides on its
     -- own timer, same as before this existed.
-    DsLabel("Hide Once I Cast (Spell ID, optional)")
+    DsLabel(ns.L("Hide Once I Cast (Spell ID, optional)"))
     local hideCastBox = DsBox(9, true, PAD + 34)
     local hideCastFeedback = ns.Font(displayBody, 10, nil, ns.THEME.muted)
     hideCastFeedback:SetPoint("TOPLEFT", displayBody, "TOPLEFT", PAD, dsy)
@@ -4440,7 +4440,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         elseif hideCastBox:GetText() == "" then
             hideCastFeedback:SetText("")
         else
-            hideCastFeedback:SetText("|cffff6060not a spell id|r")
+            hideCastFeedback:SetText(ns.L("|cffff6060not a spell id|r"))
         end
     end
     hideCastBox:SetScript("OnTextChanged", SyncHideCast)
@@ -4451,11 +4451,11 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
     local healerVal = existing and existing.healerReminder == true or false
     local enabledVal = (existing == nil) or existing.enabled ~= false
     W:DualRow(displayBody, dsy,
-        { type = "toggle", text = "Enabled",
+        { type = "toggle", text = ns.L("Enabled"),
           getValue = function() return enabledVal end,
           setValue = function(v) enabledVal = v end },
-        { type = "toggle", text = "Healer Reminder",
-          tooltip = "Mark this reminder so players can opt out with Enable Healer Reminders in Setup.",
+        { type = "toggle", text = ns.L("Healer Reminder"),
+          tooltip = ns.L("Mark this reminder so players can opt out with Enable Healer Reminders in Setup."),
           getValue = function() return healerVal end,
           setValue = function(v) healerVal = v end }
     )
@@ -4469,18 +4469,18 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         local newTrig
         if trigTypeVal == "pull" then
             local delay = tonumber(pullDelayText)
-            if not delay or delay < 0 then return nil, "need a valid delay in seconds" end
+            if not delay or delay < 0 then return nil, ns.L("need a valid delay in seconds") end
             newTrig = { type = "pull", delay = delay, leadTime = tonumber(earlyLeadText) }
         elseif trigTypeVal == "stage" then
             local stageN = tonumber(stageNumText)
             local delay = tonumber(pullDelayText)
-            if not stageN or stageN < 1 then return nil, "need a phase number of 1 or more" end
-            if not delay or delay < 0 then return nil, "need a valid delay in seconds" end
+            if not stageN or stageN < 1 then return nil, ns.L("need a phase number of 1 or more") end
+            if not delay or delay < 0 then return nil, ns.L("need a valid delay in seconds") end
             newTrig = { type = "stage", stage = stageN, delay = delay,
                 leadTime = tonumber(earlyLeadText) }
         else
             local sid = tonumber(spellIDText)
-            if not sid then return nil, "need a valid Spell ID" end
+            if not sid then return nil, ns.L("need a valid Spell ID") end
             newTrig = { type = trigTypeVal, spellID = sid }
             if trigTypeVal == "bwtimer" then
                 newTrig.leadTime = tonumber(leadTimeText) or 3
@@ -4521,7 +4521,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
             glowTarget = (glowTargetBox:GetText() ~= "" and glowTargetBox:GetText()) or nil,
         }
         return {
-            name = (nameBox:GetText() ~= "" and nameBox:GetText()) or "Reminder",
+            name = (nameBox:GetText() ~= "" and nameBox:GetText()) or ns.L("Reminder"),
             enabled = enabledVal, trigger = newTrig, target = newTarget, display = newDisplay,
             healerReminder = healerVal or nil,
             abilitySpellID = boundAbilitySpellID,
@@ -4531,7 +4531,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
     local function Save()
         local entry, err = BuildEntry()
         if not entry then
-            ns.Print("|cffff6060" .. (err or "could not save this reminder") .. "|r")
+            ns.Print("|cffff6060" .. (err or ns.L("could not save this reminder")) .. "|r")
             return
         end
         local writeSet = ns.RaidRemindersTable(true, encounterID)
@@ -4544,7 +4544,7 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         if EUI and EUI.RefreshPage then EUI:RefreshPage(true) end
     end
 
-    ns.Button(panel, "Preview", 90, 26, function()
+    ns.Button(panel, ns.L("Preview"), 90, 26, function()
         -- Bypasses ns.RaidReminderTargetsMe entirely, same as ShowCustomReminderEditor's
         -- own Preview button bypasses trigger matching -- a curator previewing sees it
         -- regardless of whether they personally match the target they just chose.
@@ -4552,11 +4552,11 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         if entry then
             if ns.PreviewRaidReminder then ns.PreviewRaidReminder(entry) end
         else
-            ns.Print("|cffff6060" .. (buildErr or "could not preview this reminder") .. "|r")
+            ns.Print("|cffff6060" .. (buildErr or ns.L("could not preview this reminder")) .. "|r")
         end
     end):SetPoint("BOTTOM", panel, "BOTTOM", -110, 16)
-    ns.Button(panel, "Save", 90, 26, Save):SetPoint("BOTTOM", panel, "BOTTOM", -10, 16)
-    ns.Button(panel, "Cancel", 90, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Save"), 90, 26, Save):SetPoint("BOTTOM", panel, "BOTTOM", -10, 16)
+    ns.Button(panel, ns.L("Cancel"), 90, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 90, 16)
 
     end)
@@ -4568,8 +4568,8 @@ function ns.ShowRaidReminderEditor(encounterID, uid, callerEUI, isRaid, abilityS
         errText:SetPoint("RIGHT", panel, "RIGHT", -PAD, 0)
         errText:SetJustifyH("LEFT")
         errText:SetWordWrap(true)
-        errText:SetText("Failed to build this panel: " .. tostring(err))
-        ns.Print("|cffff6060raid reminder editor|r: " .. tostring(err))
+        errText:SetText(ns.L("Failed to build this panel: ") .. tostring(err))
+        ns.Print(ns.L("|cffff6060raid reminder editor|r: ") .. tostring(err))
     end
 
     dimmer:Show()
@@ -4588,24 +4588,24 @@ end
 function ns.PrintBossSummary()
     local data = ns.ScrapeBosses(false)
     if not data then
-        ns.Print("could not read the journal (" .. tostring(scrapeFailed) .. ").")
+        ns.Print(ns.L("could not read the journal (") .. tostring(scrapeFailed) .. ").")
         return
     end
 
     -- Stage report first: an empty list is almost always one of these returning nothing,
     -- and knowing which turns a guessing game into a one-line fix.
-    ns.Print(("stages: tier=%s  challengeMaps=%s  mappedToJournal=%s  raidInstances=%s")
+    ns.Print((ns.L("stages: tier=%s  challengeMaps=%s  mappedToJournal=%s  raidInstances=%s"))
         :format(tostring(diag.tier), tostring(diag.mapCount),
                 tostring(diag.mapped), tostring(diag.raids)))
     if diag.mapCount == -1 then
-        ns.Print("|cffff6060C_ChallengeMode.GetMapTable is unavailable|r -- no dungeons can be listed.")
+        ns.Print(ns.L("|cffff6060C_ChallengeMode.GetMapTable is unavailable|r -- no dungeons can be listed."))
     elseif diag.mapCount == 0 then
-        ns.Print("|cffff6060The keystone map table is empty|r -- open the Mythic+ UI once, then Refresh.")
+        ns.Print(ns.L("|cffff6060The keystone map table is empty|r -- open the Mythic+ UI once, then Refresh."))
     elseif (diag.mapped or 0) == 0 then
-        ns.Print("|cffff6060No dungeon mapped to a journal instance|r -- GetInstanceForGameMap returned nothing.")
+        ns.Print(ns.L("|cffff6060No dungeon mapped to a journal instance|r -- GetInstanceForGameMap returned nothing."))
     end
     if (diag.raids or 0) == 0 then
-        ns.Print("|cffff6060No raid found for the current tier|r -- open the Adventure Guide once, then Refresh.")
+        ns.Print(ns.L("|cffff6060No raid found for the current tier|r -- open the Adventure Guide once, then Refresh."))
     end
     local instCount, bossCount, abilCount, emptyBosses = 0, 0, 0, 0
     for i = 1, #data.instances do
@@ -4617,8 +4617,8 @@ function ns.PrintBossSummary()
             abilCount = abilCount + n
             if n == 0 then emptyBosses = emptyBosses + 1 end
         end
-        ns.Print(("%s%s: %d bosses"):format(inst.isRaid and "[raid] " or "", inst.name, #inst.bosses))
+        ns.Print((ns.L("%s%s: %d bosses")):format(inst.isRaid and ns.L("[raid] ") or "", inst.name, #inst.bosses))
     end
-    ns.Print(("total: %d instances, %d bosses, %d abilities, %d bosses with none")
+    ns.Print((ns.L("total: %d instances, %d bosses, %d abilities, %d bosses with none"))
         :format(instCount, bossCount, abilCount, emptyBosses))
 end
