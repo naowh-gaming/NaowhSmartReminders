@@ -17,9 +17,9 @@ local revision = 0
 -- suppress: the FILE is muted instead. That is why each one needs a file of its own, and a
 -- second copy for the preview that the gate never touches.
 local RACIALS = {
-    ["voice:stoneform-ready"] = { spellID = 20594, name = "Stoneform",
+    ["voice:stoneform-ready"] = { spellID = 20594, name = ns.L("Stoneform"),
         preview = "voice:stoneform-preview" },
-    ["voice:shadowmeld-ready"] = { spellID = 58984, name = "Shadowmeld",
+    ["voice:shadowmeld-ready"] = { spellID = 58984, name = ns.L("Shadowmeld"),
         preview = "voice:shadowmeld-preview" },
 }
 -- Registration key -> the racial sound it belongs to, for the pending-changes comparison.
@@ -81,9 +81,9 @@ function I.Catalogue()
                         local info = C_Spell and C_Spell.GetSpellInfo(spellID)
                         local locale = (_G.EXBOSS_TRASH_CD_LOCALE or {})[npcID] or {}
                         entry.abilities[#entry.abilities + 1] = { spellID = spellID,
-                            name = info and info.name or ("Spell " .. spellID),
+                            name = info and info.name or (ns.L("Spell ") .. spellID),
                             icon = info and info.iconID,
-                            mob = locale[GetLocale()] or locale.enUS or ("NPC " .. npcID) }
+                            mob = locale[GetLocale()] or locale.enUS or (ns.L("NPC ") .. npcID) }
                     end
                 end
             end
@@ -221,8 +221,8 @@ function I.ObserveTimer(scheduler, id)
     end
     ns.PruneCustomReminderTimers()
 end
-local NO_ENGINE = "|cffff6060ExBoss is missing or too old, so no trash alert can fire.|r "
-    .. "The ability list needs it too."
+local NO_ENGINE = ns.L("|cffff6060ExBoss is missing or too old, so no trash alert can fire.|r ")
+    .. ns.L("The ability list needs it too.")
 -- The scheduler ExBoss hangs its trash timers off. One check answers for the whole tab:
 -- EXBoss lists EXBossData, which the ability list is built from, in its RequiredDeps.
 local function Engine()
@@ -239,7 +239,7 @@ local function Connect()
         return
     end
     if hooked and hooked ~= scheduler then
-        I.trashStatus = "The trash timer engine changed; reload before using trash alerts."
+        I.trashStatus = ns.L("The trash timer engine changed; reload before using trash alerts.")
         return
     end
     if not hooked then
@@ -266,7 +266,7 @@ local function Connect()
             ns.PruneCustomReminderTimers()
         end)
     end
-    I.trashStatus = "Trash timers connected. Alerts predict readiness, not a confirmed cast."
+    I.trashStatus = ns.L("Trash timers connected. Alerts predict readiness, not a confirmed cast.")
     local all = scheduler:GetActiveTimers()
     if Table(all) then for id in pairs(all) do I.ObserveTimer(scheduler, id) end end
 end
@@ -282,16 +282,16 @@ end
 -- Every rung reads a plain value or refuses: an unreadable cooldown is not a ready racial.
 local function RacialReady(spellID)
     if not (C_SpellBook and C_SpellBook.IsSpellKnown and C_Spell
-        and C_Spell.GetSpellCooldown and C_Spell.IsSpellUsable and UnitIsDeadOrGhost) then return false, "API unavailable" end
+        and C_Spell.GetSpellCooldown and C_Spell.IsSpellUsable and UnitIsDeadOrGhost) then return false, ns.L("API unavailable") end
     local known, dead = C_SpellBook.IsSpellKnown(spellID), UnitIsDeadOrGhost("player")
-    if not Plain(known) or known ~= true then return false, "spell not known or unreadable" end
-    if not Plain(dead) or dead ~= false then return false, "dead or unreadable player state" end
+    if not Plain(known) or known ~= true then return false, ns.L("spell not known or unreadable") end
+    if not Plain(dead) or dead ~= false then return false, ns.L("dead or unreadable player state") end
     local cd = C_Spell.GetSpellCooldown(spellID)
-    if not Table(cd) or not Plain(cd.isActive) or not Plain(cd.isEnabled) then return false, "cooldown unreadable" end
-    if cd.isActive ~= false or cd.isEnabled ~= true then return false, "cooldown active or on hold" end
+    if not Table(cd) or not Plain(cd.isActive) or not Plain(cd.isEnabled) then return false, ns.L("cooldown unreadable") end
+    if cd.isActive ~= false or cd.isEnabled ~= true then return false, ns.L("cooldown active or on hold") end
     local usable = C_Spell.IsSpellUsable(spellID)
-    if not Plain(usable) then return false, "usability unreadable" end
-    if usable ~= true then return false, "spell unusable" end
+    if not Plain(usable) then return false, ns.L("usability unreadable") end
+    if usable ~= true then return false, ns.L("spell unusable") end
     return true, "ready"
 end
 local function RacialStatusLine()
@@ -306,7 +306,7 @@ end
 local function UpdateRacial(key)
     local st = racialState[key]
     if not st.owned then return end
-    local ready, reason = false, "configuration pending or disabled"
+    local ready, reason = false, ns.L("configuration pending or disabled")
     if st.enabled then ready, reason = RacialReady(RACIALS[key].spellID) end
     local muted = not ready
     if muted ~= st.muted then
@@ -352,7 +352,7 @@ local function RefreshSounds()
     SetAllRacialsEnabled(false)
     if not (C_UnitAuras and C_UnitAuras.AddAuraSound and C_UnitAuras.RemoveAuraSound
         and Enum and Enum.UnitAuraSoundTrigger) then
-        I.auraStatus = "Aura sounds require the Retail AddAuraSound API."
+        I.auraStatus = ns.L("Aura sounds require the Retail AddAuraSound API.")
         return
     end
     local wanted, missing = {}, false
@@ -383,7 +383,7 @@ local function RefreshSounds()
             if request.gated and not gatedSounds[key] then matched = false end
         end
         SetAllRacialsEnabled(any and matched)
-        I.auraStatus = "Sound changes pending until combat and encounter restrictions end. Existing registrations remain active."
+        I.auraStatus = ns.L("Sound changes pending until combat and encounter restrictions end. Existing registrations remain active.")
         return
     end
     for key, id in pairs(sounds) do
@@ -416,9 +416,9 @@ local function RefreshSounds()
         end
     end
     RacialStatusLine()
-    I.auraStatus = missing and "Some rules could not load: check the selected sound files."
-        or failed and "Some aura sounds were not accepted by the client."
-        or (count .. " aura sound registrations active. Changes apply outside combat.")
+    I.auraStatus = missing and ns.L("Some rules could not load: check the selected sound files.")
+        or failed and ns.L("Some aura sounds were not accepted by the client.")
+        or (count .. ns.L(" aura sound registrations active. Changes apply outside combat."))
 end
 function I.Refresh()
     revision = revision + 1
@@ -430,7 +430,7 @@ function I.Refresh()
     end
     if not Engine() then I.trashStatus = NO_ENGINE
     elseif running then Connect()
-    else I.trashStatus = "No enabled trash rules for this instance and spec." end
+    else I.trashStatus = ns.L("No enabled trash rules for this instance and spec.") end
     RefreshSounds()
     -- The cast watch is built from these rules, and this is the one place that knows they
     -- changed: zoning, a spec swap and every edit all land here.
@@ -438,7 +438,7 @@ function I.Refresh()
     if I.OnStatusChanged then I.OnStatusChanged() end
 end
 function I.Save(uid, rule)
-    if not I.ValidRule(rule) then return false, "Check IDs, timing and sound. Stoneform voice requires Unit: Me." end
+    if not I.ValidRule(rule) then return false, ns.L("Check IDs, timing and sound. Stoneform voice requires Unit: Me.") end
     local rules = I.Rules(true)
     if not uid then
         local index = 1

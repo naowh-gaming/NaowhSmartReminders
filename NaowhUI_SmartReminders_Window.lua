@@ -49,13 +49,13 @@ end
 -- opens a note instead of the page: removing it would leave a gap people ask about, and
 -- letting it open half-finished work is worse than saying so.
 local COMING_SOON = {
-    ["Custom Notes"] = "Your own note lines, driven by the same triggers the reminders "
-        .. "use. Not finished yet.\n\nNothing is missing in the meantime: reminders still "
-        .. "carry their own text, set per reminder from the boss and trash pages.",
-    ["Ability Reminders"] = "Every reminder for one boss in a single list, instead of one "
-        .. "boss page at a time. Not finished yet.\n\nNothing is missing in the meantime: "
-        .. "the same reminders are authored per boss from the Dungeon Bosses and Raid "
-        .. "Bosses tabs, which is where this page reads them from.",
+    ["Custom Notes"] = ns.L("Your own note lines, driven by the same triggers the reminders ")
+        .. ns.L("use. Not finished yet.\n\nNothing is missing in the meantime: reminders still ")
+        .. ns.L("carry their own text, set per reminder from the boss and trash pages."),
+    ["Ability Reminders"] = ns.L("Every reminder for one boss in a single list, instead of one ")
+        .. ns.L("boss page at a time. Not finished yet.\n\nNothing is missing in the meantime: ")
+        .. ns.L("the same reminders are authored per boss from the Dungeon Bosses and Raid ")
+        .. ns.L("Bosses tabs, which is where this page reads them from."),
 }
 
 local window, scrollFrame, scrollChild, tabLine

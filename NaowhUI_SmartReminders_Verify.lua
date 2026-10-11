@@ -329,19 +329,19 @@ local SIGNATURE_BYTES = 256
 -- for "license_ok" which callers may show as a status.
 function ns.CheckPackLicense(encoded)
     local LD = LibStub and LibStub("LibDeflate", true)
-    if not LD then return false, "the serializer libraries are missing from this build" end
+    if not LD then return false, ns.L("the serializer libraries are missing from this build") end
 
     local blob = LD:DecodeForPrint(encoded)
-    if not blob then return false, "this pack's license is damaged (encoding)" end
+    if not blob then return false, ns.L("this pack's license is damaged (encoding)") end
 
-    if #blob < 2 then return false, "this pack's license is damaged (too short)" end
+    if #blob < 2 then return false, ns.L("this pack's license is damaged (too short)") end
     local version = byte(blob, 1)
     if version ~= LICENSE_FORMAT_VERSION then
-        return false, "this pack's license needs a newer version of the addon"
+        return false, ns.L("this pack's license needs a newer version of the addon")
     end
     local tagLen = byte(blob, 2)
     local expected = 2 + tagLen + 4 + SIGNATURE_BYTES
-    if #blob ~= expected then return false, "this pack's license is damaged (size)" end
+    if #blob ~= expected then return false, ns.L("this pack's license is damaged (size)") end
 
     local battletag = blob:sub(3, 2 + tagLen)
     local expiryBytes = blob:sub(3 + tagLen, 6 + tagLen)
@@ -351,22 +351,22 @@ function ns.CheckPackLicense(encoded)
 
     local message = battletag .. expiryBytes
     local sigOk, sigErr = RsaVerify(message, signature)
-    if not sigOk then return false, "this pack's license signature is invalid (" .. tostring(sigErr) .. ")" end
+    if not sigOk then return false, ns.L("this pack's license signature is invalid (") .. tostring(sigErr) .. ")" end
 
     if time() > expiry then
-        return false, "this pack's link to your account expired -- get a fresh one from naowh.gg"
+        return false, ns.L("this pack's link to your account expired -- get a fresh one from naowh.gg")
     end
 
     local _, myTag = BNGetInfo()
     if not myTag or myTag == "" then
-        return false, "could not read your Battle.net BattleTag to check this pack's license"
+        return false, ns.L("could not read your Battle.net BattleTag to check this pack's license")
     end
     -- Compared without case. BattleTags preserve the capitals you chose but are unique
     -- without them, so this cannot match the wrong account. Exact comparison rejected
     -- people who typed "Silkytouch#1976" on the site when Battle.net holds
     -- "SilkyTouch#1976", which reads as the addon being broken rather than as a typo.
     if myTag:lower() ~= battletag:lower() then
-        return false, format("this pack is licensed to %s, but you are logged in to Battle.net as %s", battletag, myTag)
+        return false, format(ns.L("this pack is licensed to %s, but you are logged in to Battle.net as %s"), battletag, myTag)
     end
 
     return true, "license_ok", battletag

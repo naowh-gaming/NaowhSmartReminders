@@ -92,10 +92,10 @@ local function Editor(parent, uid, kind, ability, dungeon)
     local spellID = t.spellID or (ability and ability.spellID)
     local mapID = t.mapID or (dungeon and dungeon.id) or 0
     local mapChoice = mapID
-    Label(parent, old and old.name or (ability and ability.name) or "New Debuff Sound",
+    Label(parent, old and old.name or (ability and ability.name) or ns.L("New Debuff Sound"),
         0, 0, 420, 16, ns.THEME.fg)
-    Label(parent, ability and (ability.mob .. "  |  Spell " .. spellID)
-        or "Rules belong to the current profile and specialization.", 0, -20, 420)
+    Label(parent, ability and (ability.mob .. ns.L("  |  Spell ") .. spellID)
+        or ns.L("Rules belong to the current profile and specialization."), 0, -20, 420)
     -- Two columns, no tabs. Once the custom text field went, neither half was big enough to
     -- be worth hiding behind a click, and the tabs were where the last two bugs came from:
     -- switching one discarded unsaved edits, and the chosen tab outlived the rule it was
@@ -105,9 +105,9 @@ local function Editor(parent, uid, kind, ability, dungeon)
     -- will need the panel to grow, and growing it past 336 brings the page's own scrollbar
     -- back, so measure before adding one.
     local COL_W = 296
-    local cast = Panel(parent, kind == "exboss" and "Cast Settings" or "Debuff Settings",
+    local cast = Panel(parent, kind == "exboss" and ns.L("Cast Settings") or ns.L("Debuff Settings"),
         0, -66, COL_W, BODY_H)
-    local test = Panel(parent, kind == "exboss" and "Display & Voice" or "Sound",
+    local test = Panel(parent, kind == "exboss" and ns.L("Display & Voice") or ns.L("Sound"),
         COL_W + 12, -66, COL_W, BODY_H)
     -- One panel now holds what the Voice tab used to; kept as its own name so the controls
     -- below read the same either way.
@@ -124,21 +124,21 @@ local function Editor(parent, uid, kind, ability, dungeon)
     else
         enabled = ability == nil
     end
-    Toggle(cast, "Enabled", function() return enabled end,
+    Toggle(cast, ns.L("Enabled"), function() return enabled end,
         function(v) enabled = v; AutoSave() end, -42, 268)
-    Toggle(cast, "Healer Reminder", function() return healer end,
+    Toggle(cast, ns.L("Healer Reminder"), function() return healer end,
         function(v) healer = v; AutoSave() end, -78, 268)
-    local name = Commit(Box(test, "Reminder name",
-        old and old.name or (ability and ability.name) or "Debuff alert", -44, 268))
+    local name = Commit(Box(test, ns.L("Reminder name"),
+        old and old.name or (ability and ability.name) or ns.L("Debuff alert"), -44, 268))
     local duration
     local lead, spell, map
     local auraEvent, target = t.auraEvent or "Added", t.target or "player"
     if kind == "exboss" then
-        duration = Commit(Box(test, "Display duration (1-15 seconds)", d.dur or 3, -100, 268))
-        lead = Commit(Box(cast, "Warn before readiness (0-30 seconds)", t.timeleft or 5, -124, 268))
-        Label(cast, "Timing predicts when the ability is ready. The cast itself is watched separately, which is where a target name can come from.", 14, -184, 268)
+        duration = Commit(Box(test, ns.L("Display duration (1-15 seconds)"), d.dur or 3, -100, 268))
+        lead = Commit(Box(cast, ns.L("Warn before readiness (0-30 seconds)"), t.timeleft or 5, -124, 268))
+        Label(cast, ns.L("Timing predicts when the ability is ready. The cast itself is watched separately, which is where a target name can come from."), 14, -184, 268)
     else
-        spell = Commit(Box(cast, "Debuff spell ID", spellID, -120, 268))
+        spell = Commit(Box(cast, ns.L("Debuff spell ID"), spellID, -120, 268))
         -- Picked by name, not typed as an id. The catalogue already knows every dungeon it
         -- carries trash data for, and the trash page has always chosen one this way.
         --
@@ -165,10 +165,10 @@ local function Editor(parent, uid, kind, ability, dungeon)
             mapOrder[#mapOrder + 1] = dungeon.id
         end
         if not mapValues[mapChoice] then
-            mapValues[mapChoice] = "Instance " .. tostring(mapChoice)
+            mapValues[mapChoice] = ns.L("Instance ") .. tostring(mapChoice)
             mapOrder[#mapOrder + 1] = mapChoice
         end
-        mapValues.other = "Another instance (by ID)"
+        mapValues.other = ns.L("Another instance (by ID)")
         mapOrder[#mapOrder + 1] = "other"
         -- The id field costs a row, and four rows at the usual spacing already fill this
         -- column against BODY_H. Everything below tightens while it is showing rather than
@@ -180,7 +180,7 @@ local function Editor(parent, uid, kind, ability, dungeon)
         -- exactly where the fourth sat before, which is the fit this column was built to.
         local gap = debuffByID and 42 or 56
         local yMap = -120 - gap
-        Dropdown(cast, "Dungeon", mapValues, mapOrder,
+        Dropdown(cast, ns.L("Dungeon"), mapValues, mapOrder,
             function() return debuffByID and "other" or mapChoice end,
             function(v)
                 local wasByID = debuffByID
@@ -200,27 +200,27 @@ local function Editor(parent, uid, kind, ability, dungeon)
             end, yMap, 268)
         local yWhen = yMap - gap
         if debuffByID then
-            map = Commit(Box(cast, "Instance ID (0 = every dungeon or raid)",
+            map = Commit(Box(cast, ns.L("Instance ID (0 = every dungeon or raid)"),
                 mapChoice, yWhen, 268))
             yWhen = yWhen - gap
         end
-        Dropdown(cast, "When", { Added = "Applied", ApplicationsIncreased = "Stack increased", Removed = "Removed" },
+        Dropdown(cast, ns.L("When"), { Added = ns.L("Applied"), ApplicationsIncreased = ns.L("Stack increased"), Removed = ns.L("Removed") },
             { "Added", "ApplicationsIncreased", "Removed" }, function() return auraEvent end,
             function(v) auraEvent = v; AutoSave() end, yWhen, 268)
-        Dropdown(cast, "Unit", { player = "Me", party = "Party members" }, { "player", "party" },
+        Dropdown(cast, ns.L("Unit"), { player = ns.L("Me"), party = ns.L("Party members") }, { "player", "party" },
             function() return target end, function(v) target = v; AutoSave() end, yWhen - gap, 268)
-        Label(test, "Use the debuff's aura spell ID. The Stoneform and Shadowmeld voices require Unit: Me and stay silent while that racial is on cooldown, unknown or unusable.\n\nChanges apply after combat and encounter restrictions end. Test previews the voice regardless of cooldown.", 14, -200, 268)
+        Label(test, ns.L("Use the debuff's aura spell ID. The Stoneform and Shadowmeld voices require Unit: Me and stay silent while that racial is on cooldown, unknown or unusable.\n\nChanges apply after combat and encounter restrictions end. Test previews the voice regardless of cooldown."), 14, -200, 268)
     end
     local preset = old and old.preset or "none"
     if kind == "exboss" then
-        local values, order = { none = "This spec's active preset" }, { "none" }
+        local values, order = { none = ns.L("This spec's active preset") }, { "none" }
         for _, p in ipairs(ns.ListPresets(I.Spec())) do
             values[p.key] = p.name; order[#order + 1] = p.key
         end
         if preset ~= "none" and not values[preset] then
-            values[preset] = "Missing preset: " .. preset; order[#order + 1] = preset
+            values[preset] = ns.L("Missing preset: ") .. preset; order[#order + 1] = preset
         end
-        Dropdown(cast, "Defensive preset", values, order, function() return preset end,
+        Dropdown(cast, ns.L("Defensive preset"), values, order, function() return preset end,
             function(v) preset = v; AutoSave() end, -242, 268)
     end
     local sound, tts = d.sound or "none", d.tts == true
@@ -230,18 +230,18 @@ local function Editor(parent, uid, kind, ability, dungeon)
     -- alone: a saved rule and a shared pack both store the key, never the label, so
     -- renaming one of these can never orphan a rule somebody already made.
     if kind == "auraSound" then
-        names["voice:stoneform-ready"] = "Stoneform - Naowh"
+        names["voice:stoneform-ready"] = ns.L("Stoneform - Naowh")
         order[#order + 1] = "voice:stoneform-ready"
-        names["voice:shadowmeld-ready"] = "Shadowmeld - Naowh"
+        names["voice:shadowmeld-ready"] = ns.L("Shadowmeld - Naowh")
         order[#order + 1] = "voice:shadowmeld-ready"
     end
-    Dropdown(voice, "Sound", names, order, function() return sound end,
+    Dropdown(voice, ns.L("Sound"), names, order, function() return sound end,
         function(v) sound = v; AutoSave() end, kind == "exboss" and -156 or -100, 268)
     if kind == "exboss" then
-        Toggle(voice, "Speak callout", function() return tts end,
+        Toggle(voice, ns.L("Speak callout"), function() return tts end,
             function(v) tts = v; AutoSave() end, -216, 268)
     end
-    local status = Label(parent, "Changes save as you make them. Test previews your current choices.", 0, -66 - BODY_H - 10, 604)
+    local status = Label(parent, ns.L("Changes save as you make them. Test previews your current choices."), 0, -66 - BODY_H - 10, 604)
     local function Value()
         local id, instanceID = spellID, mapID
         if spell then id = tonumber(spell:GetText()) end
@@ -271,18 +271,18 @@ local function Editor(parent, uid, kind, ability, dungeon)
     -- version stays saved until this one is worth saving.
     AutoSave = function()
         if I.Spec() ~= editedSpec or I.Rules(false) ~= editedRules then
-            status:SetText("Profile or specialization changed. Select the reminder again.")
+            status:SetText(ns.L("Profile or specialization changed. Select the reminder again."))
             return
         end
         local value = Value()
         if not I.ValidRule(value) then
-            status:SetText("|cffF0A830Not saved:|r check IDs, timing and sound. "
-                .. "A racial voice requires Unit: Me.")
+            status:SetText(ns.L("|cffF0A830Not saved:|r check IDs, timing and sound. ")
+                .. ns.L("A racial voice requires Unit: Me."))
             return
         end
         local ok, result = I.Save(uid, value)
         if not ok then status:SetText(result); return end
-        status:SetText("Saved.")
+        status:SetText(ns.L("Saved."))
         -- A rule that did not exist a moment ago now does, so the list has to show it and
         -- the editor has to gain its Remove button. Every later edit updates in place and
         -- leaves the page alone, or typing would fight a rebuild for the keyboard.
@@ -294,25 +294,25 @@ local function Editor(parent, uid, kind, ability, dungeon)
         end
     end
 
-    local preview = ns.Button(parent, "Test", 120, 28, function()
+    local preview = ns.Button(parent, ns.L("Test"), 120, 28, function()
         local r = Value()
         if I.ValidRule(r) then
             I.Preview(r)
             if kind == "exboss" and not r.display.tts and r.display.sound == "none" then
-                status:SetText("Visual test only. Enable Speak Callout or select a Sound for audio.")
+                status:SetText(ns.L("Visual test only. Enable Speak Callout or select a Sound for audio."))
             elseif kind == "exboss" and r.display.tts then
-                status:SetText("TTS uses Voice and Voice Volume in Setup. Check chat for any playback errors.")
+                status:SetText(ns.L("TTS uses Voice and Voice Volume in Setup. Check chat for any playback errors."))
             else
-                status:SetText("Sound preview requested.")
+                status:SetText(ns.L("Sound preview requested."))
             end
-        else status:SetText("Check IDs and sound. A racial voice requires Unit: Me.") end
+        else status:SetText(ns.L("Check IDs and sound. A racial voice requires Unit: Me.")) end
     end)
     -- Top right, on the tab row: the editor is a fixed height now and a button row under
     -- the body would put it back over the window's own edge. Both act on the whole rule
     -- rather than one group of its settings, so they stay reachable from every tab.
     preview:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, -40)
     if uid then
-        local remove = ns.Button(parent, "Remove", 120, 28, function()
+        local remove = ns.Button(parent, ns.L("Remove"), 120, 28, function()
             if I.Spec() ~= editedSpec or I.Rules(false) ~= editedRules then return end
             editedRules[uid] = nil
             if kind == "auraSound" then debuffSelection, debuffByID = {}, false
@@ -328,7 +328,7 @@ end
 -- every-boss choice to offer, so the panel is the spec list and nothing else.
 function ns.ShowCopyTrashRulesPopup(callerEUI, kind)
     local EUI = callerEUI or ns.UI
-    local noun = kind == "auraSound" and "debuff alerts" or "trash rules"
+    local noun = kind == "auraSound" and ns.L("debuff alerts") or ns.L("trash rules")
     local specs = I.SpecsWithRules(kind)
     -- Provisional: the hint below wraps to a line count no arithmetic here can know, so the
     -- panel is resized to whatever the content measured once it is laid out.
@@ -336,7 +336,7 @@ function ns.ShowCopyTrashRulesPopup(callerEUI, kind)
 
     local head = ns.Font(panel, 14, "OUTLINE")
     head:SetPoint("TOP", panel, "TOP", 0, -16)
-    head:SetText(kind == "auraSound" and "Copy Debuff Alerts From" or "Copy Trash Rules From")
+    head:SetText(kind == "auraSound" and ns.L("Copy Debuff Alerts From") or ns.L("Copy Trash Rules From"))
 
     local y = -46
     if #specs == 0 then
@@ -345,7 +345,7 @@ function ns.ShowCopyTrashRulesPopup(callerEUI, kind)
         none:SetPoint("RIGHT", panel, "RIGHT", -20, 0)
         none:SetJustifyH("LEFT")
         none:SetWordWrap(true)
-        none:SetText(("No other spec has any %s saved yet."):format(noun))
+        none:SetText((ns.L("No other spec has any %s saved yet.")):format(noun))
     else
         local hint = ns.Font(panel, 11, nil, ns.THEME.muted)
         hint:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, y)
@@ -355,9 +355,9 @@ function ns.ShowCopyTrashRulesPopup(callerEUI, kind)
         -- The class warning is the one thing worth saying up front: a rule names a spell YOU
         -- cast, so taking one from another class lands rules for spells this spec does not
         -- have. Said rather than prevented -- the same curator who wants it knows why.
-        hint:SetText("Anything this spec already has is left alone. A rule calls out one of "
-            .. "your own spells, so copying from another class brings rules for spells this "
-            .. "spec cannot cast.")
+        hint:SetText(ns.L("Anything this spec already has is left alone. A rule calls out one of ")
+            .. ns.L("your own spells, so copying from another class brings rules for spells this ")
+            .. ns.L("spec cannot cast."))
         hint:SetHeight(math.max(16, hint:GetStringHeight() + 4))
         y = y - hint:GetHeight() - 12
 
@@ -365,16 +365,16 @@ function ns.ShowCopyTrashRulesPopup(callerEUI, kind)
             local s = specs[i]
             local btn = ns.Button(panel, s.name, 210, 24, function()
                 local copied, skipped = I.CopyRulesFromSpec(s.key, kind)
-                ns.Print(("copied |cff0091ed%d|r %s from %s%s."):format(
+                ns.Print((ns.L("copied |cff0091ed%d|r %s from %s%s.")):format(
                     copied, noun, s.name,
-                    skipped > 0 and (", left " .. skipped .. " already here alone") or ""))
+                    skipped > 0 and (ns.L(", left ") .. skipped .. ns.L(" already here alone")) or ""))
                 dimmer:Hide()
                 if EUI and EUI.RefreshPage then EUI:RefreshPage(true) end
             end)
             btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, y)
             local count = ns.Font(panel, 11, nil, ns.THEME.muted)
             count:SetPoint("LEFT", btn, "RIGHT", 10, 0)
-            count:SetText(("%d saved"):format(s.total))
+            count:SetText((ns.L("%d saved")):format(s.total))
             y = y - 30
         end
     end
@@ -382,7 +382,7 @@ function ns.ShowCopyTrashRulesPopup(callerEUI, kind)
     -- Cancel anchors to the panel's own bottom, so fitting the panel to the content moves
     -- it with them rather than leaving it floating under a short list.
     panel:SetHeight(math.max(150, -y + 58))
-    ns.Button(panel, "Cancel", 90, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Cancel"), 90, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 0, 16)
     dimmer:Show()
 end
@@ -472,20 +472,20 @@ end
 
 function ns.BuildIntegrationsPage(parent, y)
     I.Refresh()
-    Label(parent, "Trash Alerts", 20, y - 4, 900, 16, ns.THEME.accent)
+    Label(parent, ns.L("Trash Alerts"), 20, y - 4, 900, 16, ns.THEME.accent)
 
     -- Beside the heading rather than buried in the list: it acts on the whole spec, not on
     -- whichever dungeon happens to be selected below, and it brings debuff rules too.
     local others = I.SpecsWithRules and I.SpecsWithRules("exboss") or {}
     if #others > 0 then
-        local copy = ns.Button(parent, "Copy From Spec", 160, 24, function()
+        local copy = ns.Button(parent, ns.L("Copy From Spec"), 160, 24, function()
             ns.ShowCopyTrashRulesPopup(UI, "exboss")
         end)
         copy:SetPoint("TOPLEFT", parent, "TOPLEFT", 160, y)
-        ns.Tooltip(copy, "Copy From Spec",
-            "Brings another spec's trash rules over to this one. Rules are saved per spec, "
-            .. "and anything already here is left alone. Debuff alerts have their own "
-            .. "button on their own tab.")
+        ns.Tooltip(copy, ns.L("Copy From Spec"),
+            ns.L("Brings another spec's trash rules over to this one. Rules are saved per spec, ")
+            .. ns.L("and anything already here is left alone. Debuff alerts have their own ")
+            .. ns.L("button on their own tab."))
     end
 
     StatusLines(parent, y)
@@ -523,7 +523,7 @@ function ns.BuildIntegrationsPage(parent, y)
     -- empty list every time is an entry worth not having. Kept rather than deleted so a
     -- rule that lands there stays reachable instead of firing from somewhere unopenable.
     if hasLoose then
-        values.saved = "Every dungeon"
+        values.saved = ns.L("Every dungeon")
         order[#order + 1] = "saved"
     end
     -- One dungeon at a time. Listing every one at once was hundreds of rows deep and made
@@ -532,8 +532,8 @@ function ns.BuildIntegrationsPage(parent, y)
         selection = { dungeon = catalogue[1] and catalogue[1].id or "saved" }
     end
 
-    local side = Panel(parent, "Select a Dungeon", 20, y - 68, 280, PANEL_H)
-    Dropdown(side, "Dungeon", values, order, function() return selection.dungeon end, function(v)
+    local side = Panel(parent, ns.L("Select a Dungeon"), 20, y - 68, 280, PANEL_H)
+    Dropdown(side, ns.L("Dungeon"), values, order, function() return selection.dungeon end, function(v)
         selection = { dungeon = v }; UI:RefreshPage(true)
     end, -42, 252)
 
@@ -561,7 +561,7 @@ function ns.BuildIntegrationsPage(parent, y)
             end
         end
         table.sort(loose, function(a, b) return a.uid < b.uid end)
-        sections[1] = { id = "saved", name = "Rules for every dungeon", loose = loose }
+        sections[1] = { id = "saved", name = ns.L("Rules for every dungeon"), loose = loose }
     end
 
     local chosen, ly = nil, 0
@@ -608,9 +608,9 @@ function ns.BuildIntegrationsPage(parent, y)
                     UI:RefreshPage(true)
                 end or nil)
             ns.Tooltip(row, ability and ability.name or entry.name,
-                ability and (ability.mob .. "\nSpell " .. ability.spellID
-                    .. (rule and "\n\nSet up on this spec." or "\n\nNot set up yet."))
-                or "Edit this saved reminder.")
+                ability and (ability.mob .. ns.L("\nSpell ") .. ability.spellID
+                    .. (rule and ns.L("\n\nSet up on this spec.") or ns.L("\n\nNot set up yet.")))
+                or ns.L("Edit this saved reminder."))
             ly = ly + ROW_H + 1
         end
     end
@@ -618,8 +618,8 @@ function ns.BuildIntegrationsPage(parent, y)
     -- with no abilities and a "saved" bucket with nothing in it are just as blank, and
     -- the label can never land on top of a row this way.
     if ly == 0 then
-        Label(list, "No trash abilities to show. The list comes from ExBoss: enable or "
-            .. "update it, then reopen this page.", 4, 0, 230)
+        Label(list, ns.L("No trash abilities to show. The list comes from ExBoss: enable or ")
+            .. ns.L("update it, then reopen this page."), 4, 0, 230)
         ly = 60
     end
     list:SetHeight(math.max(1, ly))
@@ -635,8 +635,8 @@ function ns.BuildIntegrationsPage(parent, y)
     right:SetSize(604, PANEL_H)
     if chosen then Editor(right, chosen.uid, "exboss", chosen.ability, chosen.dungeon or selectedDungeon)
     else
-        Label(right, "Select an ability to set up its callout, or switch one on to start from the defaults.", 0, 0, 604, 14)
-        Label(right, "Debuff alerts live on their own tab. Changes save as you make them.", 0, -40, 604)
+        Label(right, ns.L("Select an ability to set up its callout, or switch one on to start from the defaults."), 0, 0, 604, 14)
+        Label(right, ns.L("Debuff alerts live on their own tab. Changes save as you make them."), 0, -40, 604)
     end
     -- Measured rather than guessed: the wrapper adds its own padding on top of this,
     -- and a fixed number claimed room the page never used.
@@ -647,24 +647,24 @@ end
 -- a bucket at the bottom of the trash list where they had no dungeon to be filed under.
 function ns.BuildDebuffsPage(parent, y)
     I.Refresh()
-    Label(parent, "Debuff Alerts", 20, y - 4, 900, 16, ns.THEME.accent)
+    Label(parent, ns.L("Debuff Alerts"), 20, y - 4, 900, 16, ns.THEME.accent)
 
     -- Its own copy, of its own kind: these answer to an aura rather than a dungeon, and the
     -- trash page's button no longer reaches them.
     local others = I.SpecsWithRules and I.SpecsWithRules("auraSound") or {}
     if #others > 0 then
-        local copy = ns.Button(parent, "Copy From Spec", 160, 24, function()
+        local copy = ns.Button(parent, ns.L("Copy From Spec"), 160, 24, function()
             ns.ShowCopyTrashRulesPopup(UI, "auraSound")
         end)
         copy:SetPoint("TOPLEFT", parent, "TOPLEFT", 160, y)
-        ns.Tooltip(copy, "Copy From Spec",
-            "Brings another spec's debuff alerts over to this one. They are saved per spec, "
-            .. "and anything already here is left alone.")
+        ns.Tooltip(copy, ns.L("Copy From Spec"),
+            ns.L("Brings another spec's debuff alerts over to this one. They are saved per spec, ")
+            .. ns.L("and anything already here is left alone."))
     end
     StatusLines(parent, y)
 
-    local side = Panel(parent, "Saved Debuff Alerts", 20, y - 68, 280, PANEL_H)
-    local add = ns.Button(side, "+ Debuff Alert", 252, 26, function()
+    local side = Panel(parent, ns.L("Saved Debuff Alerts"), 20, y - 68, 280, PANEL_H)
+    local add = ns.Button(side, ns.L("+ Debuff Alert"), 252, 26, function()
         debuffSelection, debuffByID = { newAura = true }, false; UI:RefreshPage(true)
     end)
     add:SetPoint("TOPLEFT", side, "TOPLEFT", 14, -42)
@@ -693,8 +693,8 @@ function ns.BuildDebuffsPage(parent, y)
         local group = byMap[mapID]
         if not group then
             group = { mapID = mapID, entries = {},
-                name = (mapID == 0 and "Every dungeon or raid")
-                    or dungeonName[mapID] or ("Instance " .. tostring(mapID)) }
+                name = (mapID == 0 and ns.L("Every dungeon or raid"))
+                    or dungeonName[mapID] or (ns.L("Instance ") .. tostring(mapID)) }
             byMap[mapID] = group
             groups[#groups + 1] = group
         end
@@ -723,23 +723,23 @@ function ns.BuildDebuffsPage(parent, y)
             if not collapsed then
                 local icon = C_Spell and C_Spell.GetSpellTexture
                     and C_Spell.GetSpellTexture(rule.trigger.spellID)
-                local row = ListRow(list, ly, 224, rule.name or "Debuff alert", icon, rule,
+                local row = ListRow(list, ly, 224, rule.name or ns.L("Debuff alert"), icon, rule,
                     active,
                     function()
                         debuffSelection, debuffByID = { uid = entry.uid }, false
                         UI:RefreshPage(true)
                     end,
                     nil, 12)
-                ns.Tooltip(row, rule.name or "Debuff alert",
-                    ("Aura %s on %s, when %s."):format(tostring(rule.trigger.spellID),
-                        rule.trigger.target == "party" and "a party member" or "you",
-                        (rule.trigger.auraEvent or "Added"):lower()))
+                ns.Tooltip(row, rule.name or ns.L("Debuff alert"),
+                    (ns.L("Aura %s on %s, when %s.")):format(tostring(rule.trigger.spellID),
+                        rule.trigger.target == "party" and ns.L("a party member") or ns.L("you"),
+                        (GetLocale() == "ruRU" and ns.L(rule.trigger.auraEvent or "Added") or (rule.trigger.auraEvent or "Added"):lower())))
                 ly = ly + ROW_H + 1
             end
         end
     end
     if #rows == 0 then
-        Label(list, "None yet. Add one with the button above.", 4, 0, 230)
+        Label(list, ns.L("None yet. Add one with the button above."), 4, 0, 230)
         ly = 40
     end
     list:SetHeight(math.max(1, ly))
@@ -751,8 +751,8 @@ function ns.BuildDebuffsPage(parent, y)
     if debuffSelection.newAura then Editor(right, nil, "auraSound", nil, nil)
     elseif chosen then Editor(right, chosen.uid, "auraSound", nil, nil)
     else
-        Label(right, "A debuff sound plays when an aura is applied, stacks or falls off.", 0, 0, 604, 14)
-        Label(right, "Use the debuff's own aura spell ID. These apply wherever you set them, not to one dungeon. Changes save as you make them.", 0, -40, 604)
+        Label(right, ns.L("A debuff sound plays when an aura is applied, stacks or falls off."), 0, 0, 604, 14)
+        Label(right, ns.L("Use the debuff's own aura spell ID. These apply wherever you set them, not to one dungeon. Changes save as you make them."), 0, -40, 604)
     end
     -- Measured rather than guessed: the wrapper adds its own padding on top of this,
     -- and a fixed number claimed room the page never used.

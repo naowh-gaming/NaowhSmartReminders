@@ -52,15 +52,15 @@ local LICENSE_MARKER = ":LIC1:"
 -- value: what every entry of a flat section must be. perEntry: merged into an existing profile
 -- reminder by reminder rather than a boss at a time.
 local SECTIONS = {
-    { field = "presets",         label = "spec priority lists",  count = "nested" },
-    { field = "activePreset",    label = "active preset choice", count = "keys", value = "string" },
-    { field = "bossLists",       label = "per-boss orders",      count = "keys", value = "table" },
-    { field = "callouts",        label = "callout lines",        count = "keys", value = "string" },
-    { field = "customReminders", label = "custom reminders",     count = "nested", perEntry = true },
-    { field = "abilityBindings", label = "ability on/off",       count = "nested" },
-    { field = "audioOff",        label = "audio switches",       count = "keys", value = "boolean" },
-    { field = "raidReminders",   label = "raid reminders",       count = "nested", perEntry = true },
-    { field = "integrationRules", label = "trash and debuff rules", count = "nested", perEntry = true },
+    { field = "presets",         label = ns.L("spec priority lists"),  count = "nested" },
+    { field = "activePreset",    label = ns.L("active preset choice"), count = "keys", value = "string" },
+    { field = "bossLists",       label = ns.L("per-boss orders"),      count = "keys", value = "table" },
+    { field = "callouts",        label = ns.L("callout lines"),        count = "keys", value = "string" },
+    { field = "customReminders", label = ns.L("custom reminders"),     count = "nested", perEntry = true },
+    { field = "abilityBindings", label = ns.L("ability on/off"),       count = "nested" },
+    { field = "audioOff",        label = ns.L("audio switches"),       count = "keys", value = "boolean" },
+    { field = "raidReminders",   label = ns.L("raid reminders"),       count = "nested", perEntry = true },
+    { field = "integrationRules", label = ns.L("trash and debuff rules"), count = "nested", perEntry = true },
 }
 
 local function CountSection(kind, t)
@@ -302,7 +302,7 @@ end
 -- copy the saved variables file, and nothing here pretends otherwise.
 function ns.ExportPack(packName, author, allowImported)
     local Ser, LD = Codec()
-    if not Ser then return nil, "The serializer libraries are missing from this build." end
+    if not Ser then return nil, ns.L("The serializer libraries are missing from this build.") end
 
     local db = ns.DB()
     local derivedFrom
@@ -316,31 +316,31 @@ function ns.ExportPack(packName, author, allowImported)
         -- BattleTag that downloaded it, and an export carries no licence at all, so
         -- passing one on would hand out an unlicensed copy of a paid profile.
         if db.importedPack.licensed then
-            return nil, ("This profile came from %s, which is licensed to the account that "
-                .. "downloaded it. It cannot be exported. Get your own copy from naowh.gg."):format(
+            return nil, (ns.L("This profile came from %s, which is licensed to the account that ")
+                .. ns.L("downloaded it. It cannot be exported. Get your own copy from naowh.gg.")):format(
                 db.importedPack.name)
         end
         if not allowImported then
-            return nil, ("This profile contains an imported pack (%s by %s), so it cannot "
-                .. "be shared onward. Build your own profile to share one."):format(
+            return nil, (ns.L("This profile contains an imported pack (%s by %s), so it cannot ")
+                .. ns.L("be shared onward. Build your own profile to share one.")):format(
                 db.importedPack.name, db.importedPack.author)
         end
         derivedFrom = { name = tostring(db.importedPack.name),
             author = tostring(db.importedPack.author) }
     end
     local data, any = DataFromProfile(db)
-    if not any then return nil, "There is nothing to export yet." end
+    if not any then return nil, ns.L("There is nothing to export yet.") end
 
     local payload = {
         format  = PACK_FORMAT,
-        name    = (packName and packName ~= "") and packName or "Reminder Pack",
+        name    = (packName and packName ~= "") and packName or ns.L("Reminder Pack"),
         author  = (author and author ~= "") and author or (UnitName and UnitName("player")) or "unknown",
         made    = date and date("%Y-%m-%d") or "",
         derivedFrom = derivedFrom,
         data    = data,
     }
     local ok, serialized = pcall(Ser.Serialize, payload)
-    if not ok then return nil, "The pack could not be serialized." end
+    if not ok then return nil, ns.L("The pack could not be serialized.") end
     local compressed = LD:CompressDeflate(serialized)
     return PREFIX .. LD:EncodeForPrint(compressed)
 end
@@ -396,7 +396,7 @@ end
 function ns.DescribeProfilePack(str, opts)
     opts = type(opts) == "table" and opts or {}
     local payload, err = ns.DecodePack(str)
-    if not payload then return nil, nil, err or "the string could not be read" end
+    if not payload then return nil, nil, err or ns.L("the string could not be read") end
 
     local multi = type(payload.profiles) == "table"
     local wantSettings = opts.settings ~= false
@@ -425,7 +425,7 @@ function ns.DescribeProfilePack(str, opts)
         local specNames = {}
         for j = 1, #specs do specNames[j] = specs[j].name end
         profiles[1] = {
-            name = (payload.name and payload.name ~= "") and payload.name or "Reminder Pack",
+            name = (payload.name and payload.name ~= "") and payload.name or ns.L("Reminder Pack"),
             specs = specNames,
         }
     end
@@ -451,44 +451,44 @@ function ns.DescribeProfilePack(str, opts)
     }
 
     local lines = {}
-    lines[#lines + 1] = ("|cff0091ed%s|r by %s"):format(
+    lines[#lines + 1] = (ns.L("|cff0091ed%s|r by %s")):format(
         tostring(payload.name), tostring(payload.author))
     if type(payload.derivedFrom) == "table" then
         -- Stated as fact rather than addressed to the reader: whoever opens this may not be
         -- the author it names, and the fields come from the string, not from us.
-        lines[#lines + 1] = ("|cffF0A830Built on|r %s by %s."):format(
+        lines[#lines + 1] = (ns.L("|cffF0A830Built on|r %s by %s.")):format(
             tostring(payload.derivedFrom.name), tostring(payload.derivedFrom.author))
     end
-    lines[#lines + 1] = ("Will create %d new profile%s:"):format(
-        #profiles, #profiles == 1 and "" or "s")
+    lines[#lines + 1] = (ns.L("Will create %d new profile%s:")):format(
+        #profiles, #profiles == 1 and "" or (GetLocale() == "ruRU" and "" or "s"))
     for i = 1, #profiles do
         local p = profiles[i]
         local specText = #p.specs > 0 and (" -- " .. table.concat(p.specs, ", ")) or ""
         lines[#lines + 1] = ("  |cff0091ed%s|r%s"):format(p.name, specText)
     end
-    lines[#lines + 1] = "Your own existing profiles are not changed."
+    lines[#lines + 1] = ns.L("Your own existing profiles are not changed.")
     if wantSettings then
-        lines[#lines + 1] = "Includes display, sound and behaviour settings, which will be "
-            .. "applied."
+        lines[#lines + 1] = ns.L("Includes display, sound and behaviour settings, which will be ")
+            .. ns.L("applied.")
     end
     if info.willBindSpecs then
-        lines[#lines + 1] = "Each profile is bound to the specs it covers, and spec-matching "
-            .. "is switched on: changing spec, on ANY character, auto-loads the matching one."
+        lines[#lines + 1] = ns.L("Each profile is bound to the specs it covers, and spec-matching ")
+            .. ns.L("is switched on: changing spec, on ANY character, auto-loads the matching one.")
     end
     if opts.accountProfile then
         if accountProfileOK then
-            lines[#lines + 1] = ("|cffff6060Every character on this account will be switched "
-                .. "to '%s'|r, including any not yet listed below."):format(opts.accountProfile)
+            lines[#lines + 1] = (ns.L("|cffff6060Every character on this account will be switched ")
+                .. ns.L("to '%s'|r, including any not yet listed below.")):format(opts.accountProfile)
             if #movedChars > 0 then
                 local names = {}
                 for i = 1, #movedChars do
-                    names[i] = ("%s (was %s)"):format(movedChars[i].char, movedChars[i].profile)
+                    names[i] = (ns.L("%s (was %s)")):format(movedChars[i].char, movedChars[i].profile)
                 end
-                lines[#lines + 1] = "  Known characters: " .. table.concat(names, ", ")
+                lines[#lines + 1] = ns.L("  Known characters: ") .. table.concat(names, ", ")
             end
         else
-            lines[#lines + 1] = ("|cffff6060'%s' is not one of the profiles this pack "
-                .. "carries -- the account switch would fail.|r"):format(
+            lines[#lines + 1] = (ns.L("|cffff6060'%s' is not one of the profiles this pack ")
+                .. ns.L("carries -- the account switch would fail.|r")):format(
                 tostring(opts.accountProfile))
         end
     end
@@ -508,7 +508,7 @@ end
 function ns.InstallProfilePack(str, opts)
     opts = type(opts) == "table" and opts or {}
     local payload, err = ns.DecodePack(str)
-    if not payload then return false, err or "the string could not be read" end
+    if not payload then return false, err or ns.L("the string could not be read") end
 
     local settings = opts.settings ~= false
     local multi = type(payload.profiles) == "table"
@@ -523,12 +523,12 @@ function ns.InstallProfilePack(str, opts)
         ok, landed = ns.ImportPackAsProfile(payload, nil, settings, name,
             name ~= nil and name:match("%S") ~= nil)
     end
-    if not ok then return false, "the pack could not be applied" end
+    if not ok then return false, ns.L("the pack could not be applied") end
 
     if opts.accountProfile then
         local set, why = ns.SetAccountProfile(opts.accountProfile)
         if not set then
-            return false, ("imported, but %s is not a profile in this pack (%s)"):format(
+            return false, (ns.L("imported, but %s is not a profile in this pack (%s)")):format(
                 tostring(opts.accountProfile), tostring(why))
         end
         if specKey and not multi then ns.SpecProfileMap()[specKey] = specWas end
@@ -552,15 +552,15 @@ function API:ImportProfile(str, profileName)
     local ok, landed = ns.InstallProfilePack(str, { profileName = profileName })
     -- The NaowhUI installer ignores the return values, so failures are reported here.
     if not ok then
-        ns.Print("Smart Reminders import failed: " .. tostring(landed))
+        ns.Print(ns.L("Smart Reminders import failed: ") .. tostring(landed))
         return false, landed
     end
     if type(landed) == "string" then
         local set, autoOff = ns.SetAccountProfile(landed)
         if set and specKey then ns.SpecProfileMap()[specKey] = specWas end
         if set and autoOff then
-            ns.Print(("Per-spec profile switching is off while every character shares '%s'; "
-                .. "your spec choices are kept if you switch it back on."):format(landed))
+            ns.Print((ns.L("Per-spec profile switching is off while every character shares '%s'; ")
+                .. ns.L("your spec choices are kept if you switch it back on.")):format(landed))
         end
     end
     return true, landed
@@ -570,10 +570,10 @@ end
 -- and a reason. Applies nothing.
 function ns.DecodePack(str)
     local Ser, LD = Codec()
-    if not Ser then return nil, "The serializer libraries are missing from this build." end
-    if type(str) ~= "string" then return nil, "Nothing to read." end
+    if not Ser then return nil, ns.L("The serializer libraries are missing from this build.") end
+    if type(str) ~= "string" then return nil, ns.L("Nothing to read.") end
     str = str:gsub("%s+", "")
-    if str == "" then return nil, "Nothing to read." end
+    if str == "" then return nil, ns.L("Nothing to read.") end
 
     -- A naowh.gg personalized download appends a signed license after this
     -- marker. Plain find, not a pattern: the pack payload before it is
@@ -587,18 +587,18 @@ function ns.DecodePack(str)
     end
 
     if str:sub(1, #PREFIX) ~= PREFIX then
-        return nil, "Not a Reminder Pack string (missing the " .. PREFIX .. " prefix)."
+        return nil, ns.L("Not a Reminder Pack string (missing the ") .. PREFIX .. ns.L(" prefix).")
     end
     local decoded = LD:DecodeForPrint(str:sub(#PREFIX + 1))
-    if not decoded then return nil, "The string is damaged (encoding)." end
+    if not decoded then return nil, ns.L("The string is damaged (encoding).") end
     local decompressed = LD:DecompressDeflate(decoded)
-    if not decompressed then return nil, "The string is damaged (compression)." end
+    if not decompressed then return nil, ns.L("The string is damaged (compression).") end
     local ok, payload = pcall(Ser.Deserialize, decompressed)
     if not ok or type(payload) ~= "table" then
-        return nil, "The string is damaged (contents)."
+        return nil, ns.L("The string is damaged (contents).")
     end
     if payload.format ~= PACK_FORMAT then
-        return nil, "This pack needs a newer version of the addon."
+        return nil, ns.L("This pack needs a newer version of the addon.")
     end
     -- Never trust the field off the wire: it is set here and nowhere else. A pack with
     -- licensed = true serialized into it would otherwise skip CheckPackLicense entirely
@@ -612,13 +612,13 @@ function ns.DecodePack(str)
         payload.licensed = true
     end
     local multi = type(payload.profiles) == "table" and next(payload.profiles) ~= nil
-    if not multi and type(payload.data) ~= "table" then return nil, "The pack is empty." end
+    if not multi and type(payload.data) ~= "table" then return nil, ns.L("The pack is empty.") end
     for name, data in pairs(multi and payload.profiles or { payload.data }) do
         if multi and (type(name) ~= "string" or name == "") then
-            return nil, "The string is damaged (profile name)."
+            return nil, ns.L("The string is damaged (profile name).")
         end
         if type(data) ~= "table" or not ValidData(data) then
-            return nil, "The string is damaged (contents)."
+            return nil, ns.L("The string is damaged (contents).")
         end
     end
 
@@ -657,20 +657,20 @@ function ns.DecodePack(str)
         -- An older string built before the export started skipping Default can carry one and
         -- nothing else. Saying it was refused beats "empty", which reads as a damaged string.
         if refusedDefault then
-            return nil, "This pack carries only a profile named Default, which is never "
-                .. "landed -- every account already has its own."
+            return nil, ns.L("This pack carries only a profile named Default, which is never ")
+                .. ns.L("landed -- every account already has its own.")
         end
-        return nil, "The pack is empty."
+        return nil, ns.L("The pack is empty.")
     end
 
     -- A pack handed back by somebody maintaining part of your own says so, so a return
     -- is never mistaken for an original. Set only by /nutank share.
     local derived = ""
     if type(payload.derivedFrom) == "table" then
-        derived = ("|n|cffF0A830Built on|r %s by %s."):format(
+        derived = (ns.L("|n|cffF0A830Built on|r %s by %s.")):format(
             tostring(payload.derivedFrom.name), tostring(payload.derivedFrom.author))
     end
-    local desc = ("|cff0091ed%s|r by %s%s%s|n%s"):format(
+    local desc = (ns.L("|cff0091ed%s|r by %s%s%s|n%s")):format(
         tostring(payload.name), tostring(payload.author),
         type(payload.made) == "string" and payload.made ~= "" and (" (" .. payload.made .. ")") or "",
         derived,
@@ -789,8 +789,8 @@ function ns.ApplyProfiles(payload, wantProfiles, wantSettings, bindSpecs)
                 -- Marked the same way a single-profile import is: what arrived from someone
                 -- else is not the importer's to sell on.
                 tr.importedPack = {
-                    name = tostring(payload.name or "a pack"),
-                    author = tostring(payload.author or "its curator"),
+                    name = tostring(payload.name or ns.L("a pack")),
+                    author = tostring(payload.author or ns.L("its curator")),
                     licensed = payload.licensed or nil,
                 }
                 -- A brand-new profile has nothing pre-existing to conflict with, so it's safe
@@ -855,36 +855,36 @@ local MERGE_NO_SPEC = { raidReminders = true, callouts = true, audioOff = true }
 function ns.MergeProfileFromPack(payload, sourceName, targetName, opts)
     opts = type(opts) == "table" and opts or {}
     local wantSpecs = opts.specs
-    if type(payload) ~= "table" then return false, "there is nothing to read" end
+    if type(payload) ~= "table" then return false, ns.L("there is nothing to read") end
     local data
     if type(payload.profiles) == "table" then
         data = sourceName and payload.profiles[sourceName]
-        if type(data) ~= "table" then return false, "that profile is not in this string" end
+        if type(data) ~= "table" then return false, ns.L("that profile is not in this string") end
     else
         data = payload.data
     end
     if type(data) ~= "table" or not ValidData(data) then
-        return false, "the string does not carry a profile"
+        return false, ns.L("the string does not carry a profile")
     end
     if type(targetName) ~= "string" or targetName == "" then
-        return false, "choose the profile to merge into"
+        return false, ns.L("choose the profile to merge into")
     end
     -- Never creates one: merging into a profile that is not there would quietly make a new
     -- profile under a name nobody chose, which is what Import already does properly.
     if not (ns.ProfileExists and ns.ProfileExists(targetName)) then
-        return false, "that profile no longer exists"
+        return false, ns.L("that profile no longer exists")
     end
-    if wantSpecs and not next(wantSpecs) then return false, "choose at least one spec" end
+    if wantSpecs and not next(wantSpecs) then return false, ns.L("choose at least one spec") end
     local tr = ns.EnsureProfile and ns.EnsureProfile(targetName)
-    if not tr then return false, "that profile could not be opened" end
+    if not tr then return false, ns.L("that profile could not be opened") end
 
     -- Merging a licensed pack taints the target the same way importing one does.
     -- Without this the licence guard in ExportPack is simply walked around: merge the
     -- pack in, then export the target as a licence-free string.
     if payload.licensed then
         tr.importedPack = {
-            name = tostring(payload.name or "a pack"),
-            author = tostring(payload.author or "its curator"),
+            name = tostring(payload.name or ns.L("a pack")),
+            author = tostring(payload.author or ns.L("its curator")),
             licensed = true,
         }
     end
@@ -937,7 +937,7 @@ end
 
 -- A name no existing profile has. "Naowh Raid", then "Naowh Raid 2", and so on.
 local function FreeProfileName(base)
-    base = (type(base) == "string" and base ~= "") and base or "Imported Profile"
+    base = (type(base) == "string" and base ~= "") and base or ns.L("Imported Profile")
     local taken = {}
     local names = ns.ListProfiles and ns.ListProfiles() or {}
     for i = 1, #names do taken[names[i]] = true end
@@ -964,7 +964,7 @@ function ns.ImportPackAsProfile(payload, wantSpecs, wantSettings, customName, ov
     -- offer Replace at all. Untrimmed, "Naowh " would be offered as a replace and then
     -- create a second profile under a name with a trailing space.
     wanted = type(wanted) == "string" and wanted:match("^%s*(.-)%s*$") or ""
-    if wanted == "" then wanted = "Imported Profile" end
+    if wanted == "" then wanted = ns.L("Imported Profile") end
     -- Default stays "never touch what is already here". Overwrite is opt-in from the
     -- dialog and only offered when the name is actually taken, because a monthly
     -- refresh of the same pack otherwise piles up "Naowh 2", "Naowh 3" and so on.
@@ -1003,8 +1003,8 @@ function ns.ImportPackAsProfile(payload, wantSpecs, wantSettings, customName, ov
     end
 
     tr.importedPack = {
-        name = tostring(payload.name or "a pack"),
-        author = tostring(payload.author or "its curator"),
+        name = tostring(payload.name or ns.L("a pack")),
+        author = tostring(payload.author or ns.L("its curator")),
         licensed = payload.licensed or nil,
     }
     -- See the same line in ApplyProfiles: this is always a fresh profile, so there's nothing
@@ -1156,7 +1156,7 @@ end
 -- (id, name, description, icon, role, primaryStat, className) -- the same call
 -- ns.SpecName already trusts for className at 7. The spec's own name is at 2, and the
 -- class is still read because it decides the row's color and its place in the order.
-local ROLE_LABEL = { TANK = "Tank", HEALER = "Healer", DAMAGER = "DPS" }
+local ROLE_LABEL = { TANK = ns.L("Tank"), HEALER = ns.L("Healer"), DAMAGER = ns.L("DPS") }
 local ROLE_SORT = { TANK = 1, HEALER = 2, DAMAGER = 3 }
 local function SpecInfo(specKey)
     local id = tonumber(specKey)
@@ -1242,14 +1242,14 @@ function ns.ShowPackExport()
     -- other heading here uses.
     local title = ns.Font(panel, 14, "OUTLINE")
     title:SetPoint("TOP", panel, "TOP", 0, -14)
-    title:SetText("Share your Profile")
+    title:SetText(ns.L("Share your Profile"))
 
     local nameBox = CreateFrame("EditBox", nil, panel)
     nameBox:SetAutoFocus(false)
     nameBox:SetFontObject("GameFontHighlight")
     nameBox:SetSize(300, 22)
     nameBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 14, -44)
-    nameBox:SetText("My Reminder Pack")
+    nameBox:SetText(ns.L("My Reminder Pack"))
     nameBox:SetTextColor(ns.THEME.accent.r, ns.THEME.accent.g, ns.THEME.accent.b, 1)
     -- One step lighter than the panel it sits on (ns.THEME.line, the same fill the toggle
     -- track and borders use), so the field reads as its own control rather than more panel.
@@ -1262,7 +1262,7 @@ function ns.ShowPackExport()
     nameBox:SetScript("OnMouseDown", function(self) self:SetFocus() end)
     local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("LEFT", nameBox, "RIGHT", 10, 0)
-    hint:SetText("pack name, shown on import")
+    hint:SetText(ns.L("pack name, shown on import"))
 
     local box = ns.MakeMultilineBox(panel, -78, 180)
     -- Left/right-anchored and word-wrapped, not the single centered anchor point this had
@@ -1293,8 +1293,8 @@ function ns.ShowPackExport()
             for i = 1, #specs do
                 names = names and (names .. ", " .. specs[i].name) or specs[i].name
             end
-            status:SetText(("%d characters%s. Click the text, then Ctrl+A Ctrl+C."):format(
-                #str, names and (" covering " .. names) or ""))
+            status:SetText((ns.L("%d characters%s. Click the text, then Ctrl+A Ctrl+C.")):format(
+                #str, names and (ns.L(" covering ") .. names) or ""))
         else
             box:SetText("")
             status:SetText("|cffff6060" .. tostring(err) .. "|r")
@@ -1326,7 +1326,7 @@ function ns.ShowPackExport()
     nameBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
     nameBox:SetScript("OnEditFocusLost", function() Regenerate() end)
 
-    closeBtn = ns.Button(panel, "Close", 110, 26, function() dimmer:Hide() end)
+    closeBtn = ns.Button(panel, ns.L("Close"), 110, 26, function() dimmer:Hide() end)
     -- Chained off status's own bottom, not the panel's: status can be one line or several
     -- depending on how many classes a pack covers, and this has to end up below it either
     -- way rather than guessing a fixed offset that fits only the common case.
@@ -1347,11 +1347,11 @@ function ns.ShowDiagExport(text)
         local dimmer, panel = ns.MakeModal(620, 420, "diagExport")
         local title = ns.Font(panel, 14, "OUTLINE")
         title:SetPoint("TOP", panel, "TOP", 0, -14)
-        title:SetText("Diagnostic Trace")
+        title:SetText(ns.L("Diagnostic Trace"))
 
         local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         hint:SetPoint("TOP", title, "BOTTOM", 0, -6)
-        hint:SetText("Click the text, then Ctrl+A Ctrl+C, and paste it to whoever asked.")
+        hint:SetText(ns.L("Click the text, then Ctrl+A Ctrl+C, and paste it to whoever asked."))
 
         local box = ns.MakeMultilineBox(panel, -56, 300)
         box:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
@@ -1361,7 +1361,7 @@ function ns.ShowDiagExport(text)
             if user then self:SetText(diagExport.text or "") end
         end)
 
-        ns.Button(panel, "Close", 110, 26, function() dimmer:Hide() end)
+        ns.Button(panel, ns.L("Close"), 110, 26, function() dimmer:Hide() end)
             :SetPoint("BOTTOM", panel, "BOTTOM", 0, 14)
         diagExport = { dimmer = dimmer, box = box }
     end
@@ -1389,14 +1389,14 @@ function ns.ShowProfileMergeDialog()
     local dimmer, panel = ns.MakeModal(620, BASE_HEIGHT, "profileMerge")
     local title = ns.Font(panel, 14, "OUTLINE")
     title:SetPoint("TOP", panel, "TOP", 0, -14)
-    title:SetText("Merge a Profile Into Yours")
+    title:SetText(ns.L("Merge a Profile Into Yours"))
 
     local box = ns.MakeMultilineBox(panel, -40, 110)
     local preview = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     preview:SetPoint("TOPLEFT", panel, "TOPLEFT", 14, -158)
     preview:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -14, -158)
     preview:SetJustifyH("LEFT")
-    preview:SetText("Paste their profile string above.")
+    preview:SetText(ns.L("Paste their profile string above."))
 
     local decoded, sourceName, targetName
     local wantSettings, wantExtras = false, false
@@ -1477,7 +1477,7 @@ function ns.ShowProfileMergeDialog()
             end
             local values = {}
             for _, n in ipairs(sources) do values[n] = n end
-            Picker(y, "Take which of their profiles", values, sources,
+            Picker(y, ns.L("Take which of their profiles"), values, sources,
                 function() return sourceName end,
                 function(v) sourceName = v; specWanted, specSeeded = {}, false; Rebuild() end)
             y = y - 50
@@ -1491,7 +1491,7 @@ function ns.ShowProfileMergeDialog()
         end
         local values = {}
         for _, n in ipairs(mine) do values[n] = n end
-        Picker(y, "Merge it into", values, mine,
+        Picker(y, ns.L("Merge it into"), values, mine,
             function() return targetName end,
             function(v) targetName = v end)
         y = y - 54
@@ -1512,14 +1512,14 @@ function ns.ShowProfileMergeDialog()
         head:SetSize(560, 16)
         local hl = ns.Font(head, 12, nil, ns.THEME.muted)
         hl:SetPoint("LEFT", head, "LEFT", 0, 0)
-        hl:SetText(#specs > 0 and "Take which specs" or "Their string names no specs")
+        hl:SetText(#specs > 0 and ns.L("Take which specs") or ns.L("Their string names no specs"))
 
         -- On the header's own line rather than a row of their own: taking one spec out of
         -- a string carrying all 40 was otherwise 39 clicks, and the grid is tall already.
         if not selectAllBtn then
-            selectAllBtn = ns.Button(panel, "Select All", 84, 20,
+            selectAllBtn = ns.Button(panel, ns.L("Select All"), 84, 20,
                 function() SetAllWanted(true) end)
-            deselectAllBtn = ns.Button(panel, "Deselect All", 96, 20,
+            deselectAllBtn = ns.Button(panel, ns.L("Deselect All"), 96, 20,
                 function() SetAllWanted(false) end)
             selectAllBtn:SetPoint("TOPRIGHT", deselectAllBtn, "TOPLEFT", -6, 0)
         end
@@ -1551,7 +1551,7 @@ function ns.ShowProfileMergeDialog()
         local settings = Track(MakeToggleRow(panel, 460, 22, panel:GetFrameLevel() + 10,
             function() return wantSettings end,
             function(v) wantSettings = v end))
-        settings.label:SetText("Also take their display, sound and behaviour settings")
+        settings.label:SetText(ns.L("Also take their display, sound and behaviour settings"))
         settings:SetPoint("TOPLEFT", panel, "TOPLEFT", 14, y)
         settings:Show()
         y = y - 24
@@ -1559,12 +1559,12 @@ function ns.ShowProfileMergeDialog()
         local extras = Track(MakeToggleRow(panel, 460, 22, panel:GetFrameLevel() + 10,
             function() return wantExtras end,
             function(v) wantExtras = v end))
-        extras.label:SetText("Also take their raid reminders and callout lines")
+        extras.label:SetText(ns.L("Also take their raid reminders and callout lines"))
         extras:SetPoint("TOPLEFT", panel, "TOPLEFT", 14, y)
         extras:Show()
-        ns.Tooltip(extras, "Raid reminders and callout lines",
-            "Neither records a spec, so a spec handover leaves them alone. Tick this only "
-            .. "when you want theirs in place of yours.")
+        ns.Tooltip(extras, ns.L("Raid reminders and callout lines"),
+            ns.L("Neither records a spec, so a spec handover leaves them alone. Tick this only ")
+            .. ns.L("when you want theirs in place of yours."))
 
         -- The panel takes whatever the rows came to, the same as the import dialog: a
         -- string covering all 40 specs is 14 grid lines, and at a fixed height the last
@@ -1581,20 +1581,20 @@ function ns.ShowProfileMergeDialog()
             local payload, describe = ns.DecodePack(text)
             if payload then
                 decoded = payload
-                preview:SetText(describe or "Ready to merge.")
+                preview:SetText(describe or ns.L("Ready to merge."))
             else
                 preview:SetText("|cffff6060" .. tostring(describe
-                    or "That string could not be read.") .. "|r")
+                    or ns.L("That string could not be read.")) .. "|r")
             end
         else
-            preview:SetText("Paste their profile string above.")
+            preview:SetText(ns.L("Paste their profile string above."))
         end
         Rebuild()
         if mergeBtn then mergeBtn:SetAlpha(decoded and 1 or 0.4) end
     end
     box:SetScript("OnTextChanged", function() Revalidate() end)
 
-    mergeBtn = ns.Button(panel, "Merge", 130, 26, function()
+    mergeBtn = ns.Button(panel, ns.L("Merge"), 130, 26, function()
         if not decoded then return end
         local ok, a, b = ns.MergeProfileFromPack(decoded, sourceName, targetName,
             { settings = wantSettings, extras = wantExtras, specs = specWanted })
@@ -1602,14 +1602,14 @@ function ns.ShowProfileMergeDialog()
             preview:SetText("|cffff6060" .. tostring(a) .. "|r")
             return
         end
-        ns.Print(("merged into |cff0091ed%s|r: %d spec sections and %d reminders. Specs you "
-            .. "did not tick are exactly as they were."):format(
+        ns.Print((ns.L("merged into |cff0091ed%s|r: %d spec sections and %d reminders. Specs you ")
+            .. ns.L("did not tick are exactly as they were.")):format(
             tostring(targetName), a or 0, b or 0))
         dimmer:Hide()
         if ns.UI and ns.UI.RefreshPage then ns.UI:RefreshPage(true) end
     end)
     mergeBtn:SetPoint("BOTTOM", panel, "BOTTOM", -70, 14)
-    ns.Button(panel, "Cancel", 110, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Cancel"), 110, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 70, 14)
 
     profileMerge = { dimmer = dimmer, box = box, Revalidate = Revalidate }
@@ -1632,14 +1632,14 @@ function ns.ShowPackImport()
     local dimmer, panel = ns.MakeModal(700, 470, "packImport")
     local title = ns.Font(panel, 14, "OUTLINE")
     title:SetPoint("TOP", panel, "TOP", 0, -14)
-    title:SetText("Import Profile")
+    title:SetText(ns.L("Import Profile"))
 
     local box = ns.MakeMultilineBox(panel, -40, 150)
     local preview = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     preview:SetPoint("TOPLEFT", panel, "TOPLEFT", 14, -200)
     preview:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -14, -200)
     preview:SetJustifyH("LEFT")
-    preview:SetText("Paste a pack string above.")
+    preview:SetText(ns.L("Paste a pack string above."))
 
     local decoded
     local applyBtn
@@ -1729,7 +1729,7 @@ function ns.ShowPackImport()
             if settingsBtn then settingsBtn:Hide() end
             return
         end
-        specHead:SetText(multi and "Bring in which profiles:" or "Bring in which of these:")
+        specHead:SetText(multi and ns.L("Bring in which profiles:") or ns.L("Bring in which of these:"))
         specHead:Show()
         -- A grid, not a single column: a pack can carry up to 40 specs (every spec in the
         -- game), and 40 stacked rows ran off the bottom of the screen. Position is computed
@@ -1786,7 +1786,7 @@ function ns.ShowPackImport()
                 settingsBtn = MakeToggleRow(panel, 320, 22, panel:GetFrameLevel() + 10,
                     function() return settingsWanted end,
                     function(v) settingsWanted = v end)
-                settingsBtn.label:SetText("Their display, sound and behaviour settings")
+                settingsBtn.label:SetText(ns.L("Their display, sound and behaviour settings"))
             end
             settingsBtn:ClearAllPoints()
             settingsBtn:SetPoint("TOPLEFT", gridAnchor or specHead, "BOTTOMLEFT",
@@ -1809,7 +1809,7 @@ function ns.ShowPackImport()
                 bindBtn = MakeToggleRow(panel, 380, 22, panel:GetFrameLevel() + 10,
                     function() return bindWanted end,
                     function(v) bindWanted = v end)
-                bindBtn.label:SetText("Use each on the character whose spec it covers")
+                bindBtn.label:SetText(ns.L("Use each on the character whose spec it covers"))
             end
             bindBtn:ClearAllPoints()
             bindBtn:SetPoint("TOPLEFT", (settingsBtn and settingsBtn:IsShown())
@@ -1837,8 +1837,8 @@ function ns.ShowPackImport()
             -- has not is still covered, through the account default this sets.
             local known = ns.KnownCharacters and #ns.KnownCharacters() or 0
             accountBtn.label:SetText(known > 1
-                and ("Use it on all %d characters on this account, and new ones"):format(known)
-                or "Use it on every character on this account, and new ones")
+                and (ns.L("Use it on all %d characters on this account, and new ones")):format(known)
+                or ns.L("Use it on every character on this account, and new ones"))
             accountBtn:ClearAllPoints()
             accountBtn:SetPoint("TOPLEFT", (settingsBtn and settingsBtn:IsShown())
                 and settingsBtn or (gridAnchor or specHead), "BOTTOMLEFT",
@@ -1855,7 +1855,7 @@ function ns.ShowPackImport()
         if not multi then
             if not nameBox then
                 nameLabel = ns.Font(panel, 12, nil)
-                nameLabel:SetText("Save as:")
+                nameLabel:SetText(ns.L("Save as:"))
                 nameBox = CreateFrame("EditBox", nil, panel)
                 nameBox:SetAutoFocus(false)
                 nameBox:SetFontObject("GameFontHighlight")
@@ -1887,7 +1887,7 @@ function ns.ShowPackImport()
             nameBox:ClearAllPoints()
             nameBox:SetPoint("LEFT", nameLabel, "RIGHT", 8, 0)
             nameBox:SetText((payload.name and payload.name ~= "") and payload.name
-                or "Imported Profile")
+                or ns.L("Imported Profile"))
             nameLabel:Show()
             nameBox:Show()
 
@@ -1903,7 +1903,7 @@ function ns.ShowPackImport()
                 local typed = nameBox:GetText()
                 if ns.ProfileExists and ns.ProfileExists(typed) then
                     overwriteBtn.label:SetText(
-                        ("Replace the existing profile '%s' instead of making a copy"):format(typed))
+                        (ns.L("Replace the existing profile '%s' instead of making a copy")):format(typed))
                     overwriteBtn:Show()
                 else
                     ClearOverwrite()
@@ -1924,8 +1924,8 @@ function ns.ShowPackImport()
         -- On the Save as row, where there is free width; on its own row for a whole-file
         -- pack, which has no name field.
         if not selectAllBtn then
-            selectAllBtn = ns.Button(panel, "Select All", 84, 22, function() SetAllWanted(true) end)
-            deselectAllBtn = ns.Button(panel, "Deselect All", 96, 22, function() SetAllWanted(false) end)
+            selectAllBtn = ns.Button(panel, ns.L("Select All"), 84, 22, function() SetAllWanted(true) end)
+            deselectAllBtn = ns.Button(panel, ns.L("Deselect All"), 96, 22, function() SetAllWanted(false) end)
         end
         selectAllBtn:ClearAllPoints()
         if nameBox and nameBox:IsShown() then
@@ -1986,7 +1986,7 @@ function ns.ShowPackImport()
                 if specWanted[name] then wantP[name] = true; anyP = true end
             end
             if not anyP then
-                preview:SetText("|cffff6060Pick at least one profile to bring in.|r")
+                preview:SetText(ns.L("|cffff6060Pick at least one profile to bring in.|r"))
                 return
             end
             local ok, landed = ns.ApplyProfiles(decoded, wantP, settingsWanted, bindWanted)
@@ -1994,10 +1994,10 @@ function ns.ShowPackImport()
                 -- Turning the switching on is part of asking for the binding: a map nothing
                 -- consults would leave the tick looking broken.
                 if bindWanted then ns.AutoSpecProfile(true) end
-                ns.Print(("%d profile%s imported.%s"):format(landed,
-                    landed == 1 and "" or "s",
-                    bindWanted and " Each character will load the one for its spec."
-                        or " Pick one under Active Profile."))
+                ns.Print((ns.L("%d profile%s imported.%s")):format(landed,
+                    landed == 1 and "" or (GetLocale() == "ruRU" and "" or "s"),
+                    bindWanted and ns.L(" Each character will load the one for its spec.")
+                        or ns.L(" Pick one under Active Profile.")))
                 if bindWanted and ns.ApplySpecProfile and ns.CurrentSpec then
                     ns.ApplySpecProfile((ns.CurrentSpec()))
                 end
@@ -2005,7 +2005,7 @@ function ns.ShowPackImport()
                 local EUIm = ns.UI
                 if EUIm and EUIm.RefreshPage then EUIm:RefreshPage(true) end
             else
-                preview:SetText("|cffff6060The pack could not be applied.|r")
+                preview:SetText(ns.L("|cffff6060The pack could not be applied.|r"))
             end
             return
         end
@@ -2016,7 +2016,7 @@ function ns.ShowPackImport()
             if specWanted[specs[i].key] then any = true else all = false end
         end
         if #specs > 0 and not any then
-            preview:SetText("|cffff6060Pick at least one to bring in.|r")
+            preview:SetText(ns.L("|cffff6060Pick at least one to bring in.|r"))
             return
         end
         if #specs > 0 and not all then want = specWanted end
@@ -2034,39 +2034,39 @@ function ns.ShowPackImport()
             if accountSet and specKey then ns.SpecProfileMap()[specKey] = specWas end
             if accountSet then
                 local known = ns.KnownCharacters and #ns.KnownCharacters() or 0
-                ns.Print(("imported as the profile '%s'. %s on this account use%s it now, and "
-                    .. "one logged into later will too. Switching a single character "
-                    .. "afterwards moves only that one.%s"):format(
+                ns.Print((ns.L("imported as the profile '%s'. %s on this account use%s it now, and ")
+                    .. ns.L("one logged into later will too. Switching a single character ")
+                    .. ns.L("afterwards moves only that one.%s")):format(
                     tostring(newName),
-                    known == 1 and "The one character" or ("All " .. known .. " characters"),
-                    known == 1 and "s" or "",
-                    autoOff and " Per-spec profile switching is off while they share one "
-                        .. "profile; your spec choices are kept if you switch it back on." or ""))
+                    known == 1 and ns.L("The one character") or (ns.L("All ") .. known .. ns.L(" characters")),
+                    known == 1 and (GetLocale() == "ruRU" and "" or "s") or "",
+                    autoOff and ns.L(" Per-spec profile switching is off while they share one ")
+                        .. ns.L("profile; your spec choices are kept if you switch it back on.") or ""))
             else
                 -- The reassurance only holds when a copy was made. After a Replace the
                 -- old contents are gone, and saying otherwise is the worst kind of wrong.
                 if overwriteWanted then
-                    ns.Print(("replaced the profile '%s' with this pack, and switched to it."):format(
+                    ns.Print((ns.L("replaced the profile '%s' with this pack, and switched to it.")):format(
                         tostring(newName)))
                 else
-                    ns.Print(("imported as the profile '%s', and switched to it. Your own profile "
-                        .. "is untouched -- switch back to it any time."):format(tostring(newName)))
+                    ns.Print((ns.L("imported as the profile '%s', and switched to it. Your own profile ")
+                        .. ns.L("is untouched -- switch back to it any time.")):format(tostring(newName)))
                 end
             end
             dimmer:Hide()
             local EUI = ns.UI
             if EUI and EUI.RefreshPage then EUI:RefreshPage(true) end
         else
-            preview:SetText("|cffff6060The pack could not be applied.|r")
+            preview:SetText(ns.L("|cffff6060The pack could not be applied.|r"))
         end
     end
 
     -- Import or Cancel, and nothing else to weigh up. Merge and Replace were a choice about
     -- what a pack should do to the profile you were standing in; now it never touches it, so
     -- there is no question to put.
-    applyBtn = ns.Button(panel, "Import", 130, 26, function() Finish() end)
+    applyBtn = ns.Button(panel, ns.L("Import"), 130, 26, function() Finish() end)
     applyBtn:SetPoint("BOTTOM", panel, "BOTTOM", -70, 14)
-    ns.Button(panel, "Cancel", 110, 26, function() dimmer:Hide() end)
+    ns.Button(panel, ns.L("Cancel"), 110, 26, function() dimmer:Hide() end)
         :SetPoint("BOTTOM", panel, "BOTTOM", 70, 14)
 
     packImport = { dimmer = dimmer, box = box, Revalidate = Revalidate }

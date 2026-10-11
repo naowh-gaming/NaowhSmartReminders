@@ -42,6 +42,7 @@ local function Fixture()
     local ns = { Integrations = I, UI = { Widgets = {} },
         THEME = { accent = colour, muted = colour, fg = colour, panel = colour,
             bg = colour, line = colour, accentSoft = colour } }
+    ns.L = function(key, ...) if select("#", ...) > 0 then return key:format(...) end return key end
     ns.Font = Widget; ns.Solid = Widget; ns.Border = Widget; ns.Tooltip = function() end
     ns.Button = function(_, text, _, _, callback)
         e.buttons[text] = callback; local w = Widget(); w.label = Widget(); return w
@@ -63,6 +64,7 @@ local function Fixture()
         return Widget()
     end
     local env = setmetatable({ NaowhUITankReminder = ns, GameFontHighlight = {},
+        GetLocale = function() return "enUS" end,
         CreateFrame = function(kind, _, parent)
             local w = Widget(); w.CreateTexture = Widget
             if kind == "ScrollFrame" then e.scrolls[#e.scrolls + 1] = w end

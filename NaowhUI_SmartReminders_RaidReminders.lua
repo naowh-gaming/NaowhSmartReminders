@@ -775,7 +775,7 @@ local function FormatReminderMsg(text, display)
             local sid = tonumber(idStr)
             if not sid then return "" end
             local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(sid)
-            local name = (info and info.name) or ("Spell " .. sid)
+            local name = (info and info.name) or (ns.L("Spell ") .. sid)
             local iconID = info and info.iconID
             if not iconID and C_Spell and C_Spell.GetSpellTexture then
                 local ok, tex = pcall(C_Spell.GetSpellTexture, sid)
@@ -826,7 +826,7 @@ function ns.DisplayRaidReminder(entry, preview)
 
     local a, r = AcquireRegion(display.type)
     if not r then
-        ns.Print(("|cffff6060raid reminder|r: display type %q not built yet."):format(
+        ns.Print((ns.L("|cffff6060raid reminder|r: display type %q not built yet.")):format(
             tostring(display.type)))
         return
     end
@@ -1006,7 +1006,7 @@ end)
 --  Anchor/pool system above, ns.MakeModal, ns.THEME) rather than copying either one's
 --  look: a plain in-house drag handle + gear popup instead of their green banner rows.
 -------------------------------------------------------------------------------
-local DISPLAY_TYPE_LABEL = { defensive = "Defensive", text = "Message", timer = "Timer", icon = "Icon", bar = "Bar", circle = "Circle" }
+local DISPLAY_TYPE_LABEL = { defensive = ns.L("Defensive"), text = ns.L("Message"), timer = ns.L("Timer"), icon = ns.L("Icon"), bar = ns.L("Bar"), circle = ns.L("Circle") }
 local CONFIG_ORDER = { "defensive", "text", "timer", "icon", "bar", "circle" }
 
 -- All checked by default, so entering config mode shows everything; unticking is the
@@ -1021,23 +1021,23 @@ local reopenWindowOnExit = false
 -- from ns.DisplayRaidReminder's dispatch, which is built around a live, expiring fire.
 local function PopulateSample(displayType, r)
     if displayType == "text" then
-        r.text:SetText("Sample Reminder")
+        r.text:SetText(ns.L("Sample Reminder"))
         r.text:SetTextColor(1, 1, 1, 1)
     elseif displayType == "icon" then
         r.icon:SetTexture(134400)
-        r.label:SetText("Sample")
+        r.label:SetText(ns.L("Sample"))
         r.label:Show()
     elseif displayType == "timer" then
-        r.label:SetText("Sample Timer")
+        r.label:SetText(ns.L("Sample Timer"))
         r.number:SetText("5")
     elseif displayType == "bar" then
-        r.label:SetText("Sample Bar")
+        r.label:SetText(ns.L("Sample Bar"))
         r.bar:SetScript("OnUpdate", nil)
         r.bar:SetMinMaxValues(0, 1)
         r.bar:SetValue(0.6)
     elseif displayType == "circle" then
         r:SetScript("OnUpdate", nil)
-        r.label:SetText("|T134400:0|t Sample (3.4)")
+        r.label:SetText(ns.L("|T134400:0|t Sample (3.4)"))
         r.label:SetTextColor(1, 1, 1)
         local T = ns.THEME
         r.fillL:SetVertexColor(T.accent.r, T.accent.g, T.accent.b)
@@ -1298,7 +1298,7 @@ local function BuildConfigToolbar()
 
     local head = ns.Font(f, 12, "OUTLINE", T.accent)
     head:SetPoint("TOP", f, "TOP", 0, -10)
-    head:SetText("Reminder Anchors")
+    head:SetText(ns.L("Reminder Anchors"))
 
     local checks = {}
     local lastRow = 0
@@ -1311,7 +1311,7 @@ local function BuildConfigToolbar()
         chk:SetPoint("TOPLEFT", f, "TOPLEFT", 14 + col * CONFIG_COL_W, -32 - row * CONFIG_ROW_H)
         local lbl = ns.Font(f, 11, nil, T.fg)
         lbl:SetPoint("LEFT", chk, "RIGHT", 2, 1)
-        lbl:SetText("Show " .. DISPLAY_TYPE_LABEL[displayType] .. " Anchor")
+        lbl:SetText(ns.L("Show ") .. DISPLAY_TYPE_LABEL[displayType] .. ns.L(" Anchor"))
         chk:SetScript("OnClick", function(self)
             ns.SetRaidReminderAnchorConfigShown(displayType, self:GetChecked() and true or false)
         end)
@@ -1322,7 +1322,7 @@ local function BuildConfigToolbar()
     -- fall after the last row entirely.
     local exitCol = (#CONFIG_ORDER % 2 == 1) and 1 or 0
     local exitRow = (#CONFIG_ORDER % 2 == 1) and lastRow or (lastRow + 1)
-    ns.Button(f, "Exit Config", CONFIG_COL_W - 14, 22, function() ns.HideRaidReminderAnchorConfig() end)
+    ns.Button(f, ns.L("Exit Config"), CONFIG_COL_W - 14, 22, function() ns.HideRaidReminderAnchorConfig() end)
         :SetPoint("TOPLEFT", f, "TOPLEFT", 14 + exitCol * CONFIG_COL_W, -31 - exitRow * CONFIG_ROW_H)
     f:SetHeight(44 + (exitRow + 1) * CONFIG_ROW_H)
 
@@ -1379,13 +1379,13 @@ local function TextSizeRow(label, key, resize)
 end
 local RESIZE_ROWS = {
     defensive = {
-        { label = "Icon Size", min = 16, max = 200,
+        { label = ns.L("Icon Size"), min = 16, max = 200,
             get = function() return ns.DB().iconSize or 64 end,
             set = function(v)
                 ns.DB().iconSize = math.max(16, math.floor(v))
                 if ns.RefreshDefensivePreview then ns.RefreshDefensivePreview() end
             end },
-        { label = "Text Size", min = TEXT_SIZE_MIN, max = TEXT_SIZE_MAX,
+        { label = ns.L("Text Size"), min = TEXT_SIZE_MIN, max = TEXT_SIZE_MAX,
             get = function() return ns.DB().textSize or 21 end,
             set = function(v)
                 ns.DB().textSize = math.floor(v)
@@ -1393,34 +1393,34 @@ local RESIZE_ROWS = {
             end },
     },
     circle = {
-        { label = "Size", min = 20, max = 200, get = function() return CircleSize() end,
+        { label = ns.L("Size"), min = 20, max = 200, get = function() return CircleSize() end,
             set = function(v) ns.DB().raidReminderCircleSize = math.max(20, math.floor(v)); ns.ResizeRaidReminderCircle() end },
-        { label = "Thickness", min = 2, max = 40, get = function() return CircleThickness() end,
+        { label = ns.L("Thickness"), min = 2, max = 40, get = function() return CircleThickness() end,
             set = function(v) ns.DB().raidReminderCircleThickness = math.max(2, math.floor(v)); ns.ResizeRaidReminderCircle() end },
-        TextSizeRow("Text Size", "raidReminderCircleTextSize", function() ns.ResizeRaidReminderCircle() end),
+        TextSizeRow(ns.L("Text Size"), "raidReminderCircleTextSize", function() ns.ResizeRaidReminderCircle() end),
     },
     icon = {
-        { label = "Size", min = 16, max = 200, get = function() return IconSize() end,
+        { label = ns.L("Size"), min = 16, max = 200, get = function() return IconSize() end,
             set = function(v) ns.DB().raidReminderIconSize = math.max(16, math.floor(v)); ns.ResizeRaidReminderIcon() end },
-        TextSizeRow("Text Size", "raidReminderIconTextSize", function() ns.ResizeRaidReminderIcon() end),
+        TextSizeRow(ns.L("Text Size"), "raidReminderIconTextSize", function() ns.ResizeRaidReminderIcon() end),
     },
     bar = {
-        { label = "Width", min = 60, max = 600, get = function() return (BarSize()) end,
+        { label = ns.L("Width"), min = 60, max = 600, get = function() return (BarSize()) end,
             set = function(v) ns.DB().raidReminderBarWidth = math.max(60, math.floor(v)); ns.ResizeRaidReminderBar() end },
-        { label = "Height", min = 6, max = 60, get = function() local _, h = BarSize(); return h end,
+        { label = ns.L("Height"), min = 6, max = 60, get = function() local _, h = BarSize(); return h end,
             set = function(v) ns.DB().raidReminderBarHeight = math.max(6, math.floor(v)); ns.ResizeRaidReminderBar() end },
-        TextSizeRow("Text Size", "raidReminderBarTextSize", function() ns.ResizeRaidReminderBar() end),
+        TextSizeRow(ns.L("Text Size"), "raidReminderBarTextSize", function() ns.ResizeRaidReminderBar() end),
     },
     text = {
-        { label = "Width", min = 60, max = 800, get = function() return (TextSize()) end,
+        { label = ns.L("Width"), min = 60, max = 800, get = function() return (TextSize()) end,
             set = function(v) ns.DB().raidReminderTextWidth = math.max(60, math.floor(v)); ns.ResizeRaidReminderText() end },
-        { label = "Text Size", min = TEXT_SIZE_MIN, max = TEXT_SIZE_MAX,
+        { label = ns.L("Text Size"), min = TEXT_SIZE_MIN, max = TEXT_SIZE_MAX,
             get = function() local _, fs = TextSize(); return fs end,
             set = function(v) ns.DB().raidReminderTextFontSize = math.max(8, math.floor(v)); ns.ResizeRaidReminderText() end },
     },
     timer = {
-        TextSizeRow("Caption Size", "raidReminderTimerTextSize", function() ns.ResizeRaidReminderTimer() end),
-        { label = "Number Size", min = 12, max = 96,
+        TextSizeRow(ns.L("Caption Size"), "raidReminderTimerTextSize", function() ns.ResizeRaidReminderTimer() end),
+        { label = ns.L("Number Size"), min = 12, max = 96,
             get = function() return LabelSize("raidReminderTimerNumberSize") end,
             set = function(v) ns.DB().raidReminderTimerNumberSize = math.floor(v); ns.ResizeRaidReminderTimer() end },
     },
@@ -1444,7 +1444,7 @@ function ns.ShowRaidReminderAnchorSizePopup(displayType)
             "raidReminderAnchorSize:" .. displayType)
         local head = ns.Font(panel, 13, "OUTLINE")
         head:SetPoint("TOP", panel, "TOP", 0, -14)
-        head:SetText((DISPLAY_TYPE_LABEL[displayType] or displayType) .. " Size")
+        head:SetText((DISPLAY_TYPE_LABEL[displayType] or displayType) .. ns.L(" Size"))
 
         popup = { dimmer = dimmer, paints = {} }
         local PAD, y = 16, -42
@@ -1463,7 +1463,7 @@ function ns.ShowRaidReminderAnchorSizePopup(displayType)
             y = y - 34
         end
 
-        ns.Button(panel, "Done", 90, 26, function() dimmer:Hide() end)
+        ns.Button(panel, ns.L("Done"), 90, 26, function() dimmer:Hide() end)
             :SetPoint("BOTTOM", panel, "BOTTOM", 0, 14)
         sizePopups[displayType] = popup
     end

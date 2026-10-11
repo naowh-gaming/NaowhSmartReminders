@@ -20,7 +20,7 @@ end
 local ui = { Widgets = { DualRow = function(_,parent,y,left,right)
     assert(right); rows[left.text] = left; rows[right.text] = right; return Widget(), 44
 end }, RefreshPage = function() end }
-local ns = { UI = ui, THEME = {},
+local ns = { UI = ui, THEME = {}, L = function(key, ...) if select("#", ...) > 0 then return key:format(...) end return key end,
     MakeModal = function() return Widget(),Widget() end,
     Font = Widget, Solid = Widget, Border = function() end,
     Button = function(_,name,_,_,fn) buttons[name] = fn; return Widget() end,

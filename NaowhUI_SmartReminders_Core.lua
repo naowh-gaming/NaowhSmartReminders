@@ -16,6 +16,8 @@ ns.MODULE_KEY = MODULE_KEY
 
 local locale = _G.NaowhSmartRemindersLocale or {}
 function ns.L(key, ...)
+    -- Some callers pass runtime text, and a secret cannot index the table.
+    if issecretvalue and issecretvalue(key) then return key end
     local text = locale[key]
     if text == nil or text == true then text = key end
     if select("#", ...) > 0 then return text:format(...) end
@@ -51,7 +53,7 @@ ns.THEME = {
 -- the only thing that answers plainly, and it must be asked BEFORE the value is coerced.
 function ns.Print(msg)
     if issecretvalue and issecretvalue(msg) then
-        msg = "|cff0091ed(withheld: this line contained a secret value)|r"
+        msg = ns.L("|cff0091ed(withheld: this line contained a secret value)|r")
     end
     print("|cff0091edNaowhUI|r " .. tostring(msg))
 end
@@ -129,6 +131,7 @@ function ns.Button(parent, text, w, h, onClick)
     lbl:SetPoint("CENTER")
     lbl:SetText(ns.L(text))
     btn.label = lbl
+    ns.FitRussianButton(btn)
     btn:SetScript("OnClick", function() if onClick then onClick() end end)
     btn:SetScript("OnEnter", function()
         bg:SetColorTexture(T.panel.r, T.panel.g, T.panel.b, 1)
@@ -144,6 +147,7 @@ end
 function ns.SetButtonText(btn, text)
     if not (btn and btn.label) then return end
     btn.label:SetText(ns.L(text))
+    ns.FitRussianButton(btn)
 end
 
 -- The house tooltip lives in the Widgets file (ns.UI); resolved at hover time since that
@@ -156,7 +160,7 @@ function ns.SpecName(specID)
     local id = tonumber(specID)
     if not id then return tostring(specID) end
     local ok, _, name, _, _, _, _, className = pcall(GetSpecializationInfoByID, id)
-    if not (ok and name) then return "Spec " .. id end
+    if not (ok and name) then return ns.L("Spec ") .. id end
     if className and className ~= "" then return name .. " " .. className end
     return name
 end
@@ -169,7 +173,7 @@ function ns.Tooltip(frame, title, body)
         local b = body
         if type(b) == "function" then b = b() end
         if b and b ~= "" then
-            return "|cff0091ed" .. title .. "|r\n" .. b
+            return "|cff0091ed" .. ns.L(title) .. "|r\n" .. b
         end
         return title
     end
@@ -455,7 +459,7 @@ end
 
 function ns.SwitchProfile(name)
     local sv = DB()
-    if type(sv.profiles[name]) ~= "table" then return false, "no such profile" end
+    if type(sv.profiles[name]) ~= "table" then return false, ns.L("no such profile") end
     sv.charActive[CharKey()] = name
     activeRoot = nil
     -- The map learns from a deliberate switch, so choosing a profile while auto-switching is
@@ -472,8 +476,8 @@ end
 -- overwrite loses whatever was stored under it, on every character standing in it.
 local function ValidName(name, allowExisting)
     name = type(name) == "string" and name:match("^%s*(.-)%s*$") or ""
-    if name == "" then return nil, "the name is empty" end
-    if not allowExisting and DB().profiles[name] then return nil, "that name is taken" end
+    if name == "" then return nil, ns.L("the name is empty") end
+    if not allowExisting and DB().profiles[name] then return nil, ns.L("that name is taken") end
     return name
 end
 
@@ -496,7 +500,7 @@ end
 -- profile it just made.
 function ns.SetAccountProfile(name)
     local sv = DB()
-    if type(sv.profiles[name]) ~= "table" then return false, "no such profile" end
+    if type(sv.profiles[name]) ~= "table" then return false, ns.L("no such profile") end
     sv.defaultProfile = name
     for char in pairs(sv.charActive) do sv.charActive[char] = name end
     sv.charActive[CharKey()] = name
@@ -538,7 +542,7 @@ end
 
 function ns.CopyProfile(src, name, overwrite)
     local sv = DB()
-    if type(sv.profiles[src]) ~= "table" then return false, "no such profile" end
+    if type(sv.profiles[src]) ~= "table" then return false, ns.L("no such profile") end
     local err
     name, err = ValidName(name, overwrite)
     if not name then return false, err end
@@ -558,7 +562,7 @@ end
 -- whole job and it rebuilds from defaults the next time it is loaded.
 function ns.ResetProfileNamed(name)
     local sv = DB()
-    if type(sv.profiles[name]) ~= "table" then return false, "no such profile" end
+    if type(sv.profiles[name]) ~= "table" then return false, ns.L("no such profile") end
     if name == sv.charActive[CharKey()] then
         if ns.Reset then ns.Reset() end
         return true
@@ -569,10 +573,10 @@ end
 
 function ns.DeleteProfile(name)
     local sv = DB()
-    if type(sv.profiles[name]) ~= "table" then return false, "no such profile" end
+    if type(sv.profiles[name]) ~= "table" then return false, ns.L("no such profile") end
     local count = 0
     for _ in pairs(sv.profiles) do count = count + 1 end
-    if count <= 1 then return false, "the last profile cannot be deleted" end
+    if count <= 1 then return false, ns.L("the last profile cannot be deleted") end
     local wasMine = sv.charActive[CharKey()] == name
     sv.profiles[name] = nil
     -- Every character pointed at it falls back to the account default, or to any surviving
@@ -614,4 +618,21 @@ function ns.QueueReapply()
         -- callback will not run. Restore it after Apply has rebuilt/hidden the slots.
         if ns.RefreshDefensivePreview then ns.RefreshDefensivePreview() end
     end)
+end
+
+-- Long Russian captions stay inside their own buttons.
+function ns.FitRussianButton(btn)
+    if GetLocale() ~= "ruRU" or not (btn and btn.label) then return end
+    local label = btn.label
+    local available = btn:GetWidth() - 10
+    if available <= 0 then return end
+    label:SetFont(ns.UIFontPath(), 12, "")
+    label:SetWidth(0)
+    local width = label:GetStringWidth()
+    if issecretvalue and issecretvalue(width) then return end
+    if width > available then
+        label:SetFont(ns.UIFontPath(), math.max(8, 12 * available / width), "")
+    end
+    label:SetWidth(available)
+    label:SetWordWrap(false)
 end

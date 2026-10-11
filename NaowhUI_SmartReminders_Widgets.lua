@@ -206,7 +206,7 @@ function UI.BuildDropdownControl(parent, ddW, fLevel, values, order, get, set)
     end
     btn._refreshLabel = function()
         local v = get()
-        lbl:SetText(values[v] or tostring(v or ""))
+        lbl:SetText(ns.L(values[v] or tostring(v or "")))
     end
     -- An anchored dropdown, not a context menu, and it closes itself.
     --
@@ -251,7 +251,7 @@ function UI.BuildDropdownControl(parent, ddW, fLevel, values, order, get, set)
         if desc.SetScrollMode then desc:SetScrollMode(420) end
         for _, k in ipairs(Keys()) do
             local key = k
-            desc:CreateRadio(values[key] or tostring(key),
+            desc:CreateRadio(ns.L(values[key] or tostring(key)),
                 function() return get() == key end,
                 function()
                     set(key)
@@ -484,15 +484,16 @@ local function BuildRegion(row, cfg, left, width)
         lbl:SetPoint("RIGHT", rgn, "RIGHT", -20, 0)
     end
     lbl:SetJustifyH("LEFT")
-    lbl:SetWordWrap(false)
-    lbl:SetText(cfg.text or "")
+    lbl:SetWordWrap(GetLocale() == "ruRU")
+    if GetLocale() == "ruRU" then lbl:SetHeight(36) end
+    lbl:SetText(ns.L(cfg.text or ""))
     if disabled then lbl:SetAlpha(0.3) end
 
     rgn._cfg = cfg
     rgn._refresh = function(newCfg)
         UpdateConfig(cfg, newCfg)
         local off = type(cfg.disabled) == "function" and cfg.disabled()
-        lbl:SetText(cfg.text or "")
+        lbl:SetText(ns.L(cfg.text or ""))
         lbl:SetAlpha(off and 0.3 or 1)
         if control then
             if cfg.type == "toggle" then
@@ -574,7 +575,7 @@ function W:SectionHeader(parent, text, yOffset)
     f._headerBuilt = true
     local lbl = ns.Font(f, 12, nil, T.accent)
     lbl:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 8)
-    lbl:SetText(text)
+    lbl:SetText(ns.L(text))
     local sep = ns.Solid(f, "ARTWORK", T.line, 1)
     sep:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
     sep:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
@@ -654,7 +655,7 @@ function W:ColorPicker(parent, text, yOffset, get, set, hasAlpha)
 
     local lbl = ns.Font(row, 14, nil)
     lbl:SetPoint("LEFT", row, "LEFT", 20, 0)
-    lbl:SetText(text)
+    lbl:SetText(ns.L(text))
 
     local swatchBtn = UI.BuildColorSwatchControl(row,
         function() return row._colorGet() end,
@@ -670,16 +671,16 @@ end
 -- Bundled English voice clips work without an optional SharedMedia provider.
 -- Stable keys are shared by preview, native aura registrations and exported rules.
 local bundledVoices = {
-    { key = "voice:dispel-me", text = "Dispel me", file = "dispel-me.ogg" },
-    { key = "voice:move-out", text = "Move out", file = "move-out.ogg" },
+    { key = "voice:dispel-me", text = ns.L("Dispel me"), file = "dispel-me.ogg" },
+    { key = "voice:move-out", text = ns.L("Move out"), file = "move-out.ogg" },
     { key = "voice:use-a-defensive", text = "Use a defensive", file = "use-a-defensive.ogg" },
 }
 local voicePath = "Interface\\AddOns\\NaowhSmartReminders\\Media\\Voice\\"
 function UI.BuildAlertSoundTables()
-    local paths, names, order = {}, { none = "None" }, { "none" }
+    local paths, names, order = {}, { none = ns.L("None") }, { "none" }
     for _, voice in ipairs(bundledVoices) do
         paths[voice.key] = voicePath .. voice.file
-        names[voice.key] = "Voice: " .. voice.text .. " (English)"
+        names[voice.key] = ns.L("Voice: ") .. ns.L(voice.text) .. ns.L(" (English)")
         order[#order + 1] = voice.key
     end
     return paths, names, order

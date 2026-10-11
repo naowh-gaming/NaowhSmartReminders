@@ -6,6 +6,7 @@ local root = arg[1] or "."
 local function Fixture()
     local e = { db = { tankReminder = {} }, printed = {} }
     local ns = {}
+    ns.L = function(key, ...) if select("#", ...) > 0 then return key:format(...) end return key end
     ns.DB = function() return e.db end
     ns.Print = function(m) e.printed[#e.printed + 1] = m end
     ns.Integrations = { ValidRule = function() return true end }
