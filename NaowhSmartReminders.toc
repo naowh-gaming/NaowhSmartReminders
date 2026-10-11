@@ -3,7 +3,7 @@
 ## Notes: Calls out what to press when the boss timeline says an ability is coming. All specs.
 ## Notes-ruRU: Подсказывает, какую способность применить перед событием боя с боссом. Для всех специализаций.
 ## Author: NaowhUI
-## Version: 1.4.27
+## Version: 1.4.28-beta.1
 ## OptionalDeps: NaowhUI_Media, BigWigs, DBM-Core
 ## SavedVariables: NaowhUI_SmartRemindersDB
 ## Group: NaowhUI

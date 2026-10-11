@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.28-beta.1
 
 ### Added
 - Russian translation. With the game client set to Russian, the options window, callouts and
