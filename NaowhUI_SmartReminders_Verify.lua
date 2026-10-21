@@ -20,12 +20,12 @@ if not ns then return end
 -- The public half of naowh.gg's pack-signing keypair. Rotating the server's
 -- private key means updating this to match, in the same release.
 local PACK_PUBLIC_KEY_N_HEX =
-    "ac6168efc5bbff818d6e31f787d91a3cba158018b1f7b5fb588503f08857d2a502c3ae9ff4b7151d010a8f127f219f8f25" ..
-    "938f609850838b22f254d8e5cedd0efc920e8db6153ab2f787344ab108b26fea227464ff101899464b6cc6370339c9e7c3" ..
-    "20576d136f455e638614a653b4dfb67349f1c1952661f66a78e60ca640139a504c6401e06ae838618d906ce7f55286c158" ..
-    "e8c69c47b8190f2c2a696afbd32b0be40a9eacb7160ba36a8e86937eeb92af306a76dc4f1472e6b976bcf111747eb27e60" ..
-    "4037c439ac550aa1f39aee10d34bba36a955dc52be94282baa1a9d66c61f399eec97e74eea655f55861aff5c64860cd792" ..
-    "ede63d8914b999d0862333"
+    "ede38eccb86e5146e6b8c8a21a0d469ee7b4994bd25b63f915478da6882586603ddad5a119e53b75f7da491ed2f25bc4" ..
+    "eee15c2716fbe0e3618f18eb6772c745717ed15474e23fff873f15b665d5bd5103bff9ffe838d64ceb014ff63ffd8bf6" ..
+    "c5e37b589c5e854e7890a2a805545731f7cd1514d5fe7cc4429e0249089dc190efd6ed1f73dcc65ede75646c9fa5279a" ..
+    "5a16951c93c5b57fd6adc5f1fba22e55c9f645ebea34504f6ccfce1e8e70a545b2c979cc82d7d0d81142642e6a004a10" ..
+    "b647a0220680274a2bd8de568dd853cb71797ac497ecb46f577ed8cb205d7f747649dd463a6721e946db7e2c29416ecd" ..
+    "af0ecd5b9c8bee4a806f6b2954fb1e01"
 local PACK_PUBLIC_KEY_E_HEX = "10001" -- 65537
 
 -------------------------------------------------------------------------------
