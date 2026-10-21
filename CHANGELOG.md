@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.29
 
 ### Changed
 - Packs downloaded from naowh.gg are signed with a new key. Packs from naowh.gg downloaded
