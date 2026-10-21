@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+- Packs downloaded from naowh.gg are signed with a new key. Packs from naowh.gg downloaded
+  before this version no longer import; download them again from naowh.gg.
+
 ## 1.4.28
 
 ### Added
