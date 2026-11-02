@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+- Packs from naowh.gg import on servers without a Battle.net account, where the game has no
+  BattleTag to check them against.
+
 ## 1.4.29
 
 ### Changed
