@@ -357,7 +357,12 @@ function ns.CheckPackLicense(encoded)
         return false, ns.L("this pack's link to your account expired -- get a fresh one from naowh.gg")
     end
 
-    local _, myTag = BNGetInfo()
+    local presence, myTag = BNGetInfo()
+    -- TrinityCore servers report Battle.net connected with no account behind it: no presence
+    -- ID and an empty BattleTag. The signature and expiry are all that can be checked there.
+    if myTag == "" and presence == nil and BNConnected() then
+        return true, "license_ok", battletag
+    end
     if not myTag or myTag == "" then
         return false, ns.L("could not read your Battle.net BattleTag to check this pack's license")
     end
