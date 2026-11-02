@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.30
 
 ### Fixed
 - Packs from naowh.gg import on servers without a Battle.net account, where the game has no
