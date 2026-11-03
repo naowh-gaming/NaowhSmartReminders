@@ -32,7 +32,8 @@ local function Fixture(recharge)
         CanNameSpellAloud = function() return env.plain end,
         issecretvalue = function(v) return v == env.secret end,
         TRDB = function() return store end, AppendLog = function() end,
-        ownCastAt = {}, castToBase = { [SID] = SID }, ns = {}, readyAt = {} }
+        ownCastAt = {}, castToBase = { [SID] = SID },
+        ns = { NoteTrinketCast = function() return false end }, readyAt = {} }
     setmetatable(globals, { __index = _G })
     local code = chargeCode .. "\nCooldownRunning = function() return false end\n"
         .. castCode .. "\nreturn EnsureChargeState, ChargesAvailable, NoteOwnCast, chargeState"

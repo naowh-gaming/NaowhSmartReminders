@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+- On-use trinkets now work in boss and trash reminders. The Add a Defensive picker already
+  offered your equipped trinkets, but the reminder dropped them because their use effect is
+  not in the spellbook, and their cooldown was read from the spell instead of the item. A
+  trinket in a preset is now shown with its item icon, called when it is ready, and tracked
+  on cooldown after you use it, including in combat. Swapping a trinket updates the list
+  straight away.
+
 ## 1.4.30
 
 ### Fixed

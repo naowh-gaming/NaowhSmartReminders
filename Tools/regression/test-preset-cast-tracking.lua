@@ -14,7 +14,8 @@ local function Fixture(sid)
     local e = { time = 0, active = false, remaining = nil, casts = 0, enabled = true }
     local db = { enabled = true, clientRecharge = { [tostring(sid)] = 45 },
         presets = { [tostring(spec)] = { p1 = { list = { 48707 } }, p2 = { list = { sid } } } } }
-    local ns = {}
+    local ns = { TrinketReady = function() return nil end,
+        NoteTrinketCast = function() return false end }
     local registered = {}
     local env = { ns = ns, specID = spec, activeSlots = 1, slots = { { spellID = 48707 } },
         GetTime = function() return e.time end, TRDB = function() return db end,
