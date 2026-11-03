@@ -617,6 +617,9 @@ local function SecrecyLevelName(spellID)
 end
 
 local function IsSpellAvailable(spellID)
+    -- An on-use trinket's effect is never in the spellbook, so without this every trinket
+    -- the picker offered was dropped from the slots the moment it was added. Worn = usable.
+    if ns.TrinketSlot and ns.TrinketSlot(spellID) then return true end
     if C_SpellBook and C_SpellBook.IsSpellKnownOrInSpellBook then
         if C_SpellBook.IsSpellKnownOrInSpellBook(spellID) then return true end
     end
@@ -1042,6 +1045,10 @@ local function RebuildSlots(fp, keepIfEmpty, presetOverride)
                 local ok, tex = pcall(C_Spell.GetSpellTexture, spellID)
                 if ok then iconID = tex end
             end
+            local tslot = ns.TrinketSlot and ns.TrinketSlot(spellID)
+            if tslot and GetInventoryItemTexture then
+                iconID = GetInventoryItemTexture("player", tslot) or iconID
+            end
             slot.iconID = iconID or 134400
             slot.icon:SetTexture(slot.iconID)
             -- Same string the spoken callout uses, so editing it once changes both.
@@ -1099,7 +1106,7 @@ local function ApplyPriorityAlpha()
         -- correctly called the held one -- a callout with the wrong icon lit.
         EnsureChargeState(slot.spellID)
         local charges = ChargesAvailable(slot.spellID)
-        local dur = (not charges) and C_Spell.GetSpellCooldownDuration(slot.spellID, true) or nil
+        local dur = (not charges) and ns.CooldownDurationFor(slot.spellID) or nil
         -- ignoreGCD=true is load-bearing. It defaults to FALSE, and the returned duration
         -- then covers the global cooldown -- so mid-fight, with a GCD running almost
         -- constantly, every defensive reported as unavailable and no icon ever appeared.
@@ -1172,7 +1179,7 @@ function ns.ShowCalloutSet(picked, partners)
         local alpha = 0
         if i <= activeSlots and display.order[slot.spellID] then
             local charges = ChargesAvailable(slot.spellID)
-            local dur = (not charges) and C_Spell.GetSpellCooldownDuration(slot.spellID, true) or nil
+            local dur = (not charges) and ns.CooldownDurationFor(slot.spellID) or nil
             if charges then
                 alpha = charges > 0 and 1 or 0
             elseif dur and dur.IsZero then
@@ -2445,6 +2452,10 @@ local function NoteOwnCast(castSpellID)
         if chargeState[sid] then return end
     end
 
+    -- A trinket's cooldown belongs to the item, not to its use spell: the spell's base
+    -- cooldown reads 0 and the spell cooldown accessors do not describe it.
+    if ns.NoteTrinketCast(sid) then return end
+
     -- Learned beats base: a previously observed real total already includes every static
     -- talent reduction, which the base number never does.
     local t = TRDB()
@@ -2525,6 +2536,7 @@ end
 
 local function ResyncSpell(sid)
     sid = ns.CooldownKey(sid)
+    if ns.ResyncTrinket(sid) then return end
     -- Re-read the shape every pass. A talent swap can add or remove charges, and a
     -- stale shape is what makes the model confidently wrong rather than absent.
     EnsureChargeState(sid)
@@ -2597,6 +2609,147 @@ function ns.ResyncModelSoon()
     C_Timer.After(0, ns.RunQueuedResync)
 end
 
+-------------------------------------------------------------------------------
+--  Equipped on-use trinkets
+-------------------------------------------------------------------------------
+-- The picker offers the use effect of each worn trinket (C_Item.GetItemSpell), but every
+-- reader below was written for class spells: the use spell is not in the spellbook, its base
+-- cooldown reads 0, and the spell cooldown accessors do not describe an item's cooldown. So
+-- a trinket is resolved back to its equipment slot and read through the ITEM cooldown.
+-- That read is plain wherever it is not sealed; where it is, the player's own cast (always
+-- plain) drives readyAt exactly like a sealed class cooldown.
+--
+-- One do block and ns functions only: this chunk is at Lua's 200-local ceiling.
+do
+    local bySpell, built = {}, false
+    -- Unknown length before the first readable cast. Most on-use trinkets are 2 minutes;
+    -- too long only costs silence until the next readable resync corrects it.
+    local DEFAULT_TRINKET_CD = 120
+    -- Equipping a trinket locks it for 30 s, and the shared lockout one trinket puts on the
+    -- other is about 20 s. Learn only totals longer than both.
+    local MIN_LEARN = 30
+
+    local function Build()
+        wipe(bySpell)
+        local complete = true
+        for _, slot in ipairs({ INVSLOT_TRINKET1 or 13, INVSLOT_TRINKET2 or 14 }) do
+            local link = GetInventoryItemLink and GetInventoryItemLink("player", slot)
+            if link and C_Item and C_Item.GetItemSpell then
+                local ok, _, sid = pcall(C_Item.GetItemSpell, link)
+                if ok and type(sid) == "number" and sid > 0 then
+                    bySpell[sid] = slot
+                else
+                    -- No use spell can mean "no on-use effect" or "item not cached yet";
+                    -- only the second is worth asking again.
+                    local info = C_Item.GetItemInfo or GetItemInfo
+                    if not ok or (info and not info(link)) then complete = false end
+                end
+            end
+        end
+        -- An item whose data is still loading answers nothing; ask again next time.
+        built = complete
+    end
+
+    -- Equipment slot (13/14) whose worn trinket uses this spell, else nil.
+    function ns.TrinketSlot(sid)
+        if type(sid) ~= "number" then return nil end
+        if not built then Build() end
+        return bySpell[sid]
+    end
+
+    function ns.InvalidateTrinkets()
+        built = false
+    end
+
+    -- remaining, total in seconds, or nil when the read is sealed or unavailable.
+    function ns.TrinketCooldown(slot)
+        if not GetInventoryItemCooldown then return nil end
+        local ok, start, dur = pcall(GetInventoryItemCooldown, "player", slot)
+        if not ok then return nil end
+        if issecretvalue and (issecretvalue(start) or issecretvalue(dur)) then return nil end
+        if type(start) ~= "number" or type(dur) ~= "number" then return nil end
+        -- Nothing running, or only the global cooldown.
+        if start <= 0 or dur <= 1.5 then return 0, 0 end
+        return math.max(0, start + dur - GetTime()), dur
+    end
+
+    local function Learned(sid)
+        local t = TRDB()
+        return type(t.learned) == "table" and t.learned[tostring(sid)] or nil
+    end
+
+    -- nil when sid is not a worn trinket; otherwise true/false for ready.
+    function ns.TrinketReady(sid, now)
+        local slot = ns.TrinketSlot(sid)
+        if not slot then return nil end
+        now = now or GetTime()
+        local rem = ns.TrinketCooldown(slot)
+        if rem then
+            readyAt[sid] = now + rem
+            return rem <= 0
+        end
+        return (readyAt[sid] or 0) <= now
+    end
+
+    -- Called from NoteOwnCast with the cast map's key. True when it handled the cast.
+    function ns.NoteTrinketCast(sid)
+        local slot = ns.TrinketSlot(sid)
+        if not slot then return false end
+        local rem, total = ns.TrinketCooldown(slot)
+        if rem and total and total > MIN_LEARN and rem > 0 then
+            ns.LearnTotal(sid, total)
+            readyAt[sid] = GetTime() + rem
+        else
+            -- Sealed, or the item cooldown has not started yet in this same frame:
+            -- SPELL_UPDATE_COOLDOWN resyncs it right after when it is readable.
+            readyAt[sid] = GetTime() + (Learned(sid) or DEFAULT_TRINKET_CD)
+        end
+        return true
+    end
+
+    -- Called from ResyncSpell. True when sid is a worn trinket.
+    function ns.ResyncTrinket(sid)
+        local slot = ns.TrinketSlot(sid)
+        if not slot then return false end
+        local rem, total = ns.TrinketCooldown(slot)
+        if rem then
+            readyAt[sid] = GetTime() + rem
+            if total and total > MIN_LEARN and rem > 0 then ns.LearnTotal(sid, total) end
+        end
+        return true
+    end
+
+    -- Stands in for C_Spell.GetSpellCooldownDuration(sid, true) in the icon pick. Same
+    -- shape the callers use (IsZero / GetRemainingDuration / GetTotalDuration), plain values.
+    local proto = {}
+    function proto:IsZero() return self.rem <= 0 end
+    function proto:GetRemainingDuration() return self.rem end
+    function proto:GetTotalDuration() return self.total end
+    local meta = { __index = proto }
+
+    function ns.CooldownDurationFor(sid)
+        local slot = ns.TrinketSlot(sid)
+        if not slot then return C_Spell.GetSpellCooldownDuration(sid, true) end
+        local rem, total = ns.TrinketCooldown(slot)
+        if not rem then
+            rem = math.max(0, (readyAt[ns.CooldownKey(sid)] or 0) - GetTime())
+            total = 0
+        end
+        return setmetatable({ rem = rem, total = total or 0 }, meta)
+    end
+
+    -- A swap changes which use spells exist: rebuild the slots and the cast map so the new
+    -- trinket is called and the removed one is not.
+    local equip = CreateFrame("Frame")
+    equip:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    equip:SetScript("OnEvent", function(_, _, slot)
+        if slot == (INVSLOT_TRINKET1 or 13) or slot == (INVSLOT_TRINKET2 or 14) then
+            ns.InvalidateTrinkets()
+            if IsLoggedIn() then ns.RefreshRuntime() end
+        end
+    end)
+end
+
 -- Is this spell castable right now? Shared by the voice pick and by preset-bound custom
 -- reminders, deliberately in one place: a second copy of this ladder drifting out of step
 -- with the first is precisely the class of bug this file keeps producing.
@@ -2632,6 +2785,8 @@ end
 -- Returns nil, not a guess, when the client cannot answer -- callers fall back to the
 -- older ladder rather than treating "no answer" as ready.
 function CooldownRunning(sid)
+    local trinket = ns.TrinketReady(ns.CooldownKey(sid))
+    if trinket ~= nil then return not trinket end
     if not (C_Spell and C_Spell.GetSpellCooldown) then return nil end
     local ok, running = pcall(function()
         local info = C_Spell.GetSpellCooldown(sid)
@@ -2644,6 +2799,8 @@ end
 
 local function SpellReady(sid, now)
     sid = ns.CooldownKey(sid)
+    local trinket = ns.TrinketReady(sid, now)
+    if trinket ~= nil then return trinket end
     local charges = ChargesAvailable(sid)
     if charges then return charges > 0 end
 
@@ -6817,7 +6974,8 @@ local function CollectCandidates()
                     out[#out + 1] = {
                         id   = spellID,
                         name = spellName or (si and si.name) or (ns.L("Spell ") .. spellID),
-                        icon = si and si.iconID,
+                        icon = (GetInventoryItemTexture and GetInventoryItemTexture("player", slot))
+                            or (si and si.iconID),
                         cd   = (type(base) == "number" and base) or 0,
                     }
                 end
