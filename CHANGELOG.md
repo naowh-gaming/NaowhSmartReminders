@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.31
 
 ### Fixed
 - On-use trinkets now work in boss and trash reminders. The Add a Defensive picker already
