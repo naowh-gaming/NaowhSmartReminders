@@ -154,6 +154,8 @@ jobs:
             echo "::warning::${TAG} notes are ${#notes} characters, over Discord's 4096. Post them by hand."
             exit 0
           fi
-          jq -n --arg title "Naowh Smart Reminders ${TAG}" --arg notes "$notes" \
-            '{embeds: [{title: $title, description: $notes, color: 10181046}]}' |
+          # Pings the server's "Smart Reminders" role.
+          jq -n --arg title "Naowh Smart Reminders ${TAG}" --arg notes "$notes" --arg role 1566588359776931991 \
+            '{content: "<@&\($role)>", allowed_mentions: {roles: [$role]},
+              embeds: [{title: $title, description: $notes, color: 10181046}]}' |
             curl -fsS -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"
